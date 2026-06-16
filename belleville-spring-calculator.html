@@ -329,7 +329,7 @@ function getVals() {
 //   → 有效錐高 h0_eff = h0 - 2d（t 不變）
 //
 function calcP(De, Di, t, d, h0, s, E, nu) {
-  const h0_eff = Math.max(h0 - 2*d, 0.001);
+  const h0_eff = Math.max(h0, 0.001);
   const dR = De/Di, l = Math.log(dR);
   const K1 = (1/Math.PI)*Math.pow((dR-1)/dR,2)/l;
   const K2 = (6/Math.PI)*((dR-1)/l-1);
@@ -339,7 +339,7 @@ function calcP(De, Di, t, d, h0, s, E, nu) {
 }
 
 function calcStress(De, Di, t, d, h0, s, E, nu) {
-  const h0_eff = Math.max(h0 - 2*d, 0.001);
+  const h0_eff = Math.max(h0, 0.001);
   const dR = De/Di, l = Math.log(dR);
   const K1 = (1/Math.PI)*Math.pow((dR-1)/dR,2)/l;
   const K2 = (6/Math.PI)*((dR-1)/l-1);
