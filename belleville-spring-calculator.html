@@ -165,11 +165,12 @@ footer {
 
 <header>
   <h1>Belleville Spring 碟形彈簧計算器</h1>
-  <p>Almen-Laszlo 公式 ｜ 即時計算負載、應力、彈簧率</p>
+  <p>Almen-Laszlo 公式　｜　即時計算負載、應力、彈簧率</p>
 </header>
 
 <div class="container">
 
+  <!-- 幾何參數 -->
   <div class="card">
     <div class="card-title">幾何參數</div>
     <div class="param-row"><label>外徑 De</label><input type="range" id="De-r" min="1" max="100" value="40" step="0.1"><input type="number" id="De-n" min="1" max="100" value="40" step="0.1"><span class="unit">mm</span></div>
@@ -194,6 +195,7 @@ footer {
     </div>
   </div>
 
+  <!-- 計算結果 -->
   <div class="card">
     <div class="card-title">計算結果</div>
     <div class="results-grid">
@@ -206,17 +208,20 @@ footer {
     <div class="warn" id="warn-box"></div>
   </div>
 
+  <!-- 截面示意圖 -->
   <div class="card">
     <div class="card-title">截面尺寸示意圖</div>
-    <p class="def-note">h₀ = 外緣底面 → 內緣底面名義高度差（不含 t）  t = 外緣處材料垂直厚度  d = 磨平高度（黃色水平線，每個角點磨去 d，有效高度 = h₀+t−2d）</p>
+    <p class="def-note">h₀ = 外緣底面 → 內緣底面名義高度差（不含 t）　　t = 外緣處材料垂直厚度　　d = 磨平高度（黃色水平線，每個角點磨去 d，有效高度 = h₀+t−2d）</p>
     <canvas id="dimCanvas" height="420"></canvas>
   </div>
 
+  <!-- 負載-撓度曲線 -->
   <div class="card">
     <div class="card-title">負載–撓度曲線</div>
     <div style="position:relative;height:220px"><canvas id="chart"></canvas></div>
   </div>
 
+  <!-- h₀/t 區段 -->
   <div class="card">
     <div class="card-title">h₀/t 特性區段</div>
     <div class="ht-bar"><span class="ht-label">線性區 (&lt;0.4)</span><div class="ht-track"><div class="ht-fill" id="ht-linear"    style="background:#1D9E75"></div></div></div>
@@ -226,21 +231,22 @@ footer {
     <p style="font-size:12px;color:var(--text3);margin-top:8px">目前 h₀/t = <strong id="ht-now">—</strong> → <span id="ht-desc" style="font-weight:500">—</span></p>
   </div>
 
+  <!-- 公式 -->
   <div class="card">
     <div class="card-title">Almen-Laszlo 核心公式</div>
     <div class="formula">P = [4E·t⁴ / ((1−ν²)·De²)] × [K₁(h₀ₑff−s/2)(s/t) + K₂(s/t)²]</div>
-    <div class="formula">h₀ₑff = h₀ − 2d  （有效錐高，磨平修正後）
-K₁ = (1/π)·[(δ−1)/δ]²/ln(δ)  δ = De/Di
+    <div class="formula">h₀ₑff = h₀ − 2d　　（有效錐高，磨平修正後）
+K₁ = (1/π)·[(δ−1)/δ]²/ln(δ)　　δ = De/Di
 K₂ = (6/π)·[(δ−1)/ln(δ) − 1]</div>
     <p class="formula-note">
       d = 磨平高度，發生於外緣底角與內緣頂角各一處，每處磨去垂直高度 d<br>
       外緣底角磨平 → 支撐點上移 d；內緣頂角磨平 → 加壓點下移 d<br>
-      有效總高度 h₀+t−2d  其中 h₀ = 名義錐高，t = 材料厚度，h₀ₑff = h₀−2d（計算用）<br>
-      De = 外徑  Di = 內徑  E = 楊氏模量  ν = 泊松比  s = 工作撓度
+      有效總高度 h₀+t−2d　　其中 h₀ = 名義錐高，t = 材料厚度，h₀ₑff = h₀−2d（計算用）<br>
+      De = 外徑　　Di = 內徑　　E = 楊氏模量　　ν = 泊松比　　s = 工作撓度
     </p>
   </div>
 
-  <footer>Belleville Spring Calculator ｜ Almen-Laszlo (1936) ｜ 角落設計 Silence Corner</footer>
+  <footer>Belleville Spring Calculator　｜　Almen-Laszlo (1936)　｜　角落設計 Silence Corner</footer>
 </div>
 
 <script>
@@ -281,13 +287,13 @@ let chartObj = null;
   });
 });
 
-// d 不能讓有效厚度或高度消失：確保 2d < h0
+// d 的上限：確保 h0_eff = h0-2d > 0，即 d < h0/2
+// （t 不受 d 影響，無需限制 d < t/2）
 function clampD() {
   const h0Val = parseFloat(document.getElementById('h0-n').value) || 3;
-  const tVal  = parseFloat(document.getElementById('t-n').value)  || 2;
   const dN = document.getElementById('d-n');
   const dR = document.getElementById('d-r');
-  const dMax = Math.min(h0Val / 2 - 0.01, tVal / 2).toFixed(2);
+  const dMax = Math.max(h0Val / 2 - 0.01, 0).toFixed(2);
   dN.max = dMax; dR.max = dMax;
   let dv = parseFloat(dN.value) || 0;
   if (dv > parseFloat(dMax)) {
@@ -312,46 +318,32 @@ function getVals() {
   };
 }
 
-// ── 修正：Almen-Laszlo 公式（導入 DIN 2092 磨平修正版） ──
+// ── Almen-Laszlo 公式（磨平修正版） ──
+// 磨平 d 使接觸點偏移：外緣底角上移 d，內緣頂角下移 d
+// → 有效錐高 h0_eff = h0 - 2d（t 不變）
+// s 最大值仍為 h0（彈片壓扁的物理極限不受 d 影響）
 function calcP(De, Di, t, d, h0, s, E, nu) {
+  const h0_eff = Math.max(h0 - 2*d, 0.001);
   const dR = De / Di;
   const l = Math.log(dR);
-  
   const K1 = (1 / Math.PI) * Math.pow((dR - 1) / dR, 2) / l;
   const K2 = (6 / Math.PI) * ((dR - 1) / l - 1);
-  
-  const h0_eff = Math.max(h0, 0.001);
-  const sC = Math.min(s, h0_eff * 0.999);
-  
-  let t_eff = t;
-  let K4 = 1.0;
-  if (d > 0 && t > 0) {
-    t_eff = t - d * 0.75; 
-    K4 = 1.0 + 1.2 * (d / t); 
-  }
-  t_eff = Math.max(t_eff, 0.1);
-
-  return Math.max(0, (4 * E * Math.pow(t_eff, 4)) / ((1 - nu * nu) * De * De * K1) * ((h0_eff - sC / 2) * (sC / t_eff) + K2 * Math.pow(sC / t_eff, 2)) * K4);
+  const sC = Math.min(s, h0 * 0.999);   // 上限為 h0，不受 d 影響
+  return Math.max(0, (4 * E * Math.pow(t, 4)) / ((1 - nu * nu) * De * De) *
+    (K1 * (h0_eff - sC / 2) * (sC / t) + K2 * Math.pow(sC / t, 2)));
 }
 
-// ── 修正：內緣應力公式（導入磨平修正） ──
+// ── 內緣應力公式（磨平修正版） ──
 function calcStress(De, Di, t, d, h0, s, E, nu) {
+  const h0_eff = Math.max(h0 - 2*d, 0.001);
   const dR = De / Di;
   const l = Math.log(dR);
-  
   const K1 = (1 / Math.PI) * Math.pow((dR - 1) / dR, 2) / l;
   const K2 = (6 / Math.PI) * ((dR - 1) / l - 1);
   const K3 = (1 / Math.PI) * ((dR - 1) / l - 1);
-  
-  const h0_eff = Math.max(h0, 0.001);
-  const sC = Math.min(s, h0_eff * 0.999);
-  
-  let t_eff = t;
-  if (d > 0 && t > 0) {
-    t_eff = Math.max(t - d * 0.75, 0.1);
-  }
-
-  return Math.abs((4 * E * t_eff) / ((1 - nu * nu) * De * De * K1) * (K2 * (h0_eff - sC / 2) + K3 * t_eff));
+  const sC = Math.min(s, h0 * 0.999);   // 上限為 h0
+  return Math.abs((4 * E * t * t) / ((1 - nu * nu) * De * De * K1) *
+    (K2 * (h0_eff - sC / 2) + K3 * t));
 }
 
 // ── 修正：受壓後最終內徑動態計算公式（依據 DIN 剛體旋轉投影模型） ──
@@ -553,14 +545,16 @@ function drawDiagram(De, Di, t, d, h0, sVal) {
 // ── Main update ──
 function update() {
   const {De, Di, t, d, h0, s, E, nu} = getVals();
-  
-  const h0_eff = Math.max(h0, 0.001);
-  const sC = Math.min(s, h0_eff * 0.999);
+
+  // h0_eff 用於計算有效彈力特性（h₀/t、DiF）
+  // sC 上限為 h0（壓扁極限），不受 d 影響
+  const h0_eff = Math.max(h0 - 2*d, 0.001);
+  const sC = Math.min(s, h0 * 0.999);
 
   const P   = calcP(De, Di, t, d, h0, sC, E, nu);
-  const P2  = calcP(De, Di, t, d, h0, Math.min(sC + 0.01, h0_eff * 0.999), E, nu);
+  const P2  = calcP(De, Di, t, d, h0, Math.min(sC + 0.01, h0 * 0.999), E, nu);
   const sig = calcStress(De, Di, t, d, h0, sC, E, nu);
-  const ht  = h0_eff / t;
+  const ht  = h0_eff / t;   // 使用有效錐高計算 h₀/t 特性
   const DiF = calcDiF(De, Di, h0_eff, sC, nu);
 
   document.getElementById('r-P').textContent  = P.toFixed(1);
@@ -603,17 +597,18 @@ function update() {
 }
 
 function updateChart(De, Di, t, d, h0, E, nu, sC) {
-  const h0_eff = Math.max(h0, 0.001);
+  // 圖表 x 軸範圍用 h0（物理壓扁極限）
+  const h0_eff = Math.max(h0 - 2*d, 0.001);
   const labels = [], data = [];
   for (let i = 0; i <= 40; i++) {
-    const sv = h0_eff * (i/40) * 0.999;
+    const sv = h0 * (i/40) * 0.999;   // x 軸上限 = h0
     labels.push(sv.toFixed(2));
     data.push(parseFloat(calcP(De,Di,t,d,h0,sv,E,nu).toFixed(2)));
   }
   const cp   = calcP(De, Di, t, d, h0, sC, E, nu);
   const dots = Array(41).fill(null).map((_,i) => {
-    const sv = h0_eff*(i/40)*0.999;
-    return Math.abs(sv-sC) < h0_eff/40*.6 ? parseFloat(cp.toFixed(2)) : null;
+    const sv = h0*(i/40)*0.999;
+    return Math.abs(sv-sC) < h0/40*.6 ? parseFloat(cp.toFixed(2)) : null;
   });
 
   if (!chartObj) {
@@ -627,8 +622,8 @@ function updateChart(De, Di, t, d, h0, E, nu, sC) {
         responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{ display:false } },
         scales:{
-          x:{ title:{ display:true, text='撓度 s (mm)', font:{size:12} }, ticks:{ maxTicksLimit:8, font:{size:11} } },
-          y:{ title:{ display:true, text='負載 P (N)',  font:{size:12} }, ticks:{ font:{size:11} } }
+          x:{ title:{ display:true, text: '撓度 s (mm)', font:{size:12} }, ticks:{ maxTicksLimit:8, font:{size:11} } },
+          y:{ title:{ display:true, text: '負載 P (N)',  font:{size:12} }, ticks:{ font:{size:11} } }
         }
       }
     });
