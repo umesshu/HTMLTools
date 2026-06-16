@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>進階 Belleville Spring 碟形彈簧計算器 (實務工程級)</title>
+<title>Belleville Spring 碟形彈簧計算器</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,7 +57,7 @@ header {
 header h1 { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
 header p  { font-size: 13px; color: var(--text2); margin-top: 3px; }
 
-.container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.container { max-width: 820px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 
 .card {
   background: var(--bg);
@@ -74,29 +74,26 @@ header p  { font-size: 13px; color: var(--text2); margin-top: 3px; }
   border-bottom: 1px solid var(--border);
 }
 
-.param-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-@media(max-width: 750px) { .param-grid { grid-template-columns: 1fr; } }
-
+/* Param rows */
 .param-row {
   display: grid;
-  grid-template-columns: 130px 1fr 80px 28px;
+  grid-template-columns: 120px 1fr 90px 28px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 .param-row label { font-size: 13px; color: var(--text2); }
 .param-row input[type=range] { width: 100%; accent-color: var(--teal); cursor: pointer; }
 .param-row input[type=number] {
   width: 100%; font-size: 13px; font-weight: 500;
-  text-align: right; padding: 4px 6px;
+  text-align: right; padding: 4px 8px;
   border: 1px solid var(--border); border-radius: 6px;
   background: var(--bg2); color: var(--text);
   -moz-appearance: textfield;
 }
+.param-row input[type=number]::-webkit-inner-spin-button,
+.param-row input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+.param-row input[type=number]:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 2px rgba(29,158,117,.15); }
 .param-row .unit { font-size: 12px; color: var(--text3); }
 
 select {
@@ -104,19 +101,20 @@ select {
   border: 1px solid var(--border); border-radius: 6px;
   background: var(--bg2); color: var(--text); cursor: pointer;
 }
+select:focus { outline: none; border-color: var(--teal); }
 
 /* Results */
 .results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(5, minmax(0,1fr));
   gap: 10px;
 }
+@media(max-width:600px) { .results-grid { grid-template-columns: repeat(2,1fr); } }
 
 .metric { background: var(--bg2); border-radius: 8px; padding: .75rem 1rem; }
 .metric.accent { border-left: 2px solid var(--teal); }
-.metric.danger { border-left: 2px solid var(--red); }
 .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
-.metric-value { font-size: 18px; font-weight: 600; color: var(--text); }
+.metric-value { font-size: 20px; font-weight: 600; color: var(--text); }
 .metric-unit  { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
 /* Warning */
@@ -130,88 +128,100 @@ select {
   .warn { background:#3d1818; color:#F09595; border-color:#6b2a2a; }
 }
 
+/* h₀/t bars */
 .ht-bar   { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .ht-label { font-size:12px; color:var(--text2); width:110px; flex-shrink:0; }
 .ht-track { flex:1; height:10px; background:var(--bg2); border-radius:5px; overflow:hidden; }
 .ht-fill  { height:100%; border-radius:5px; transition:width .3s; }
 
-.formula-box {
-  background: var(--bg2); border-left: 3px solid var(--blue);
-  border-radius: 0 6px 6px 0; padding: .75rem 1rem;
-  font-size: 12px; color: var(--text2); margin-top: 10px;
+/* formula */
+.formula {
+  background: var(--bg2); border-left: 3px solid var(--teal);
+  border-radius: 0 6px 6px 0;
+  padding: .75rem 1rem;
+  font-family: "Courier New", "Menlo", monospace;
+  font-size: 13px; color: var(--text); line-height: 1.9;
+  margin-bottom: .75rem; overflow-x: auto;
+}
+.formula-note { font-size: 12px; color: var(--text3); line-height: 1.9; }
+
+.def-note {
+  font-size: 12px; color: var(--text3);
+  margin: 0 0 10px; padding: 6px 10px;
+  background: var(--bg2); border-radius: 6px;
+  border-left: 2px solid var(--blue);
 }
 
 canvas { display: block; width: 100% !important; }
-footer { text-align: center; font-size: 12px; color: var(--text3); margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+footer {
+  text-align: center; font-size: 12px; color: var(--text3);
+  margin-top: 2rem; padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>進階 Belleville Spring 碟形彈簧計算器 (DIN 2092 / 2093 實務修正版)</h1>
-  <p>增強型 Almen-Laszlo 公式 ｜ 整合四點應力分析、接觸面截平幾何、上下壓摩擦力遲滯效應</p>
+  <h1>Belleville Spring 碟形彈簧計算器</h1>
+  <p>Almen-Laszlo 公式　｜　即時計算負載、應力、彈簧率</p>
 </header>
 
 <div class="container">
 
+  <!-- 幾何參數 -->
   <div class="card">
-    <div class="card-title">幾何與工況參數</div>
-    <div class="param-grid">
-      <div>
-        <div class="param-row"><label>外徑 De</label><input type="range" id="De-r" min="5" max="200" value="40" step="0.5"><input type="number" id="De-n" value="40" step="0.5"><span class="unit">mm</span></div>
-        <div class="param-row"><label>內徑 Di</label><input type="range" id="Di-r" min="2" max="150" value="20" step="0.5"><input type="number" id="Di-n" value="20" step="0.5"><span class="unit">mm</span></div>
-        <div class="param-row"><label>厚度 t</label><input type="range" id="t-r"  min="0.2" max="20" value="2.0" step="0.1"><input type="number" id="t-n" value="2.0" step="0.1"><span class="unit">mm</span></div>
-        <div class="param-row"><label>自由錐高 h₀</label><input type="range" id="h0-r" min="0.1" max="15" value="1.5" step="0.05"><input type="number" id="h0-n" value="1.5" step="0.05"><span class="unit">mm</span></div>
-        <div class="param-row"><label>工作撓度 s</label><input type="range" id="s-r"  min="0.05" max="15" value="0.9" step="0.05"><input type="number" id="s-n" value="0.9" step="0.05"><span class="unit">mm</span></div>
-      </div>
-      <div>
-        <div class="param-row"><label>截平厚度 t'</label><input type="range" id="tPrime-r" min="0.2" max="20" value="2.0" step="0.1"><input type="number" id="tPrime-n" value="2.0" step="0.1"><span class="unit">mm</span></div>
-        <div class="param-row"><label>摩擦係數 μ</label><input type="range" id="mu-r" min="0.0" max="0.3" value="0.05" step="0.01"><input type="number" id="mu-n" value="0.05" step="0.01"><span class="unit">—</span></div>
-        <div style="margin-top:10px; margin-bottom:10px; display:grid; grid-template-columns:130px 1fr; align-items:center; gap:8px">
-          <label style="font-size:13px;color:var(--text2)">材料預設</label>
-          <select id="mat">
-            <option value="206000,0.3">彈簧鋼/碳鋼 (E=206 GPa, ν=0.30)</option>
-            <option value="193000,0.29">不鏽鋼 SUS304 (E=193 GPa, ν=0.29)</option>
-            <option value="71000,0.33">鋁合金 AL6061 (E=71 GPa, ν=0.33)</option>
-            <option value="72000,0.33">鋁合金 AL7075 (E=72 GPa, ν=0.33)</option>
-          </select>
-        </div>
-        <p style="font-size: 11px; color: var(--text3); line-height: 1.4;">
-          * 註：當實務上將棱角截平時，t' &lt; t。若無截平，請保持 t' 等於 t。<br>
-          * 摩擦係數 μ 典型值：無潤滑約 0.08~0.15，良好潤滑約 0.03~0.06。
-        </p>
-      </div>
+    <div class="card-title">幾何參數</div>
+    <div class="param-row"><label>外徑 De</label><input type="range" id="De-r" min="1" max="100" value="40" step="0.1"><input type="number" id="De-n" min="1" max="100" value="40" step="0.1"><span class="unit">mm</span></div>
+    <div class="param-row"><label>內徑 Di</label><input type="range" id="Di-r" min="1" max="60"  value="20" step="0.1"><input type="number" id="Di-n" min="1" max="60"  value="20" step="0.1"><span class="unit">mm</span></div>
+    <div class="param-row"><label>厚度 t</label><input type="range" id="t-r"  min="0.3" max="8" value="2"  step="0.1"><input type="number" id="t-n"  min="0.3" max="8" value="2"  step="0.1"><span class="unit">mm</span></div>
+    <div class="param-row">
+      <label style="line-height:1.3">角落尺寸 R<br><span style="font-size:11px;color:var(--text3)">R角/C角/磨平</span></label>
+      <input type="range" id="R-r" min="0" max="2" value="0" step="0.05">
+      <input type="number" id="R-n" min="0" max="2" value="0" step="0.05">
+      <span class="unit">mm</span>
+    </div>
+    <div class="param-row"><label>自由錐高 h₀</label><input type="range" id="h0-r" min="0.1" max="10" value="3" step="0.1"><input type="number" id="h0-n" min="0.1" max="10" value="3" step="0.1"><span class="unit">mm</span></div>
+    <div class="param-row"><label>工作撓度 s</label><input type="range" id="s-r"  min="0.1" max="8"  value="1.5" step="0.1"><input type="number" id="s-n"  min="0.1" max="8"  value="1.5" step="0.1"><span class="unit">mm</span></div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px">
+      <label style="font-size:13px;color:var(--text2)">材料</label>
+      <select id="mat">
+        <option value="206000,0.3">碳鋼 (E=206 GPa, ν=0.30)</option>
+        <option value="193000,0.29">不鏽鋼 SUS304 (E=193 GPa, ν=0.29)</option>
+        <option value="71000,0.33">鋁合金 AL6061 (E=71 GPa, ν=0.33)</option>
+        <option value="72000,0.33">鋁合金 AL7075 (E=72 GPa, ν=0.33)</option>
+      </select>
     </div>
   </div>
 
+  <!-- 計算結果 -->
   <div class="card">
-    <div class="card-title">精確分析結果</div>
+    <div class="card-title">計算結果</div>
     <div class="results-grid">
-      <div class="metric accent"><div class="metric-label">無摩擦理論負載 P₀</div><div class="metric-value" id="r-P0">—</div><div class="metric-unit">N</div></div>
-      <div class="metric danger"><div class="metric-label">下壓實際負載 P_down</div><div class="metric-value" id="r-Pdown">—</div><div class="metric-unit">N (含摩擦)</div></div>
-      <div class="metric"><div class="metric-label">釋放回復負載 P_up</div><div class="metric-value" id="r-Pup">—</div><div class="metric-unit">N (含摩擦)</div></div>
-      <div class="metric"><div class="metric-label">切線彈簧率 k</div><div class="metric-value" id="r-k">—</div><div class="metric-unit">N/mm</div></div>
-    </div>
-    
-    <div class="results-grid" style="margin-top: 12px;">
-      <div class="metric"><div class="metric-label">點 I 應力 (內頂壓應力)</div><div class="metric-value" id="r-sigma1">—</div><div class="metric-unit">MPa</div></div>
-      <div class="metric"><div class="metric-label">點 II 應力 (內底壓應力)</div><div class="metric-value" id="r-sigma2">—</div><div class="metric-unit">MPa</div></div>
-      <div class="metric"><div class="metric-label">點 III 應力 (外底拉應力)</div><div class="metric-value" id="r-sigma3">—</div><div class="metric-unit">MPa (疲勞起點)</div></div>
-      <div class="metric"><div class="metric-label">點 IV 應力 (外頂壓應力)</div><div class="metric-value" id="r-sigma4">—</div><div class="metric-unit">MPa</div></div>
+      <div class="metric"><div class="metric-label">負載 P</div><div class="metric-value" id="r-P">—</div><div class="metric-unit">N</div></div>
+      <div class="metric"><div class="metric-label">彈簧率 k</div><div class="metric-value" id="r-k">—</div><div class="metric-unit">N/mm</div></div>
+      <div class="metric"><div class="metric-label">內緣應力 σᵢ</div><div class="metric-value" id="r-si">—</div><div class="metric-unit">MPa</div></div>
+      <div class="metric"><div class="metric-label">h₀/t 比值</div><div class="metric-value" id="r-ht">—</div><div class="metric-unit">—</div></div>
+      <div class="metric accent"><div class="metric-label">最終內徑 Di'</div><div class="metric-value" id="r-di">—</div><div class="metric-unit">mm（受壓後）</div></div>
     </div>
     <div class="warn" id="warn-box"></div>
   </div>
 
+  <!-- 截面示意圖 -->
   <div class="card">
-    <div class="card-title">負載–撓度 特性遲滯曲線 (Hysteresis Loop)</div>
-    <div style="position:relative;height:260px"><canvas id="chart"></canvas></div>
+    <div class="card-title">截面尺寸示意圖</div>
+    <p class="def-note">h₀ = 外緣底面 → 內緣底面名義高度差（不含 t）　　t = 外緣處材料垂直厚度　　R = 角落尺寸（黃色標示，影響有效錐高）</p>
+    <canvas id="dimCanvas" height="420"></canvas>
   </div>
 
+  <!-- 負載-撓度曲線 -->
   <div class="card">
-    <div class="card-title">截面尺寸與 DIN 2092 應力點示意圖</div>
-    <canvas id="dimCanvas" height="380"></canvas>
+    <div class="card-title">負載–撓度曲線</div>
+    <div style="position:relative;height:220px"><canvas id="chart"></canvas></div>
   </div>
 
+  <!-- h₀/t 區段 -->
   <div class="card">
     <div class="card-title">h₀/t 特性區段</div>
     <div class="ht-bar"><span class="ht-label">線性區 (&lt;0.4)</span><div class="ht-track"><div class="ht-fill" id="ht-linear"    style="background:#1D9E75"></div></div></div>
@@ -221,358 +231,477 @@ footer { text-align: center; font-size: 12px; color: var(--text3); margin-top: 2
     <p style="font-size:12px;color:var(--text3);margin-top:8px">目前 h₀/t = <strong id="ht-now">—</strong> → <span id="ht-desc" style="font-weight:500">—</span></p>
   </div>
 
+  <!-- 公式 -->
   <div class="card">
-    <div class="card-title">工程修正技術說明 (DIN 2092 規範要點)</div>
-    <div class="formula-box">
-      <strong>1. 截平幾何修正 (Reduced Thickness t')：</strong><br>
-      當碟形彈簧帶有截平面時，會引進修正參數 $K_4 = \sqrt{1 - (t'/t)^2}$ 與新型自由高 $h_0' = h_0 \cdot (t'/t)$。公式中的剛度貢獻會改由實質厚度 $t'$ 來主導，避免傳統公式嚴重高估厚彈簧負載的問題。<br><br>
-      <strong>2. DIN 正統四點應力分析：</strong><br>
-      修正原本過於簡化的單一應力，改採 DIN 2092 標準公式，計算出斷面外廓的 4 個極端應力點：
-      <ul>
-        <li>$\sigma_I$：內緣頂面，通常承受最大壓應力，決定材料是否產生初期塑性變形。</li>
-        <li>$\sigma_{III}$：外緣底面，承受拉應力，為動態循環負荷下**疲勞裂痕（Fatigue Failure）**的主因。</li>
-      </ul><br>
-      <strong>3. 摩擦力遲滯效應 (Friction Hysteresis)：</strong><br>
-      碟形彈簧在端點滑動會受摩擦係數 $\mu$ 影響。下壓時摩擦阻礙變形，實際負載增加：$P_{down} = P_0 / (1 - \mu \cdot \gamma)$；釋放時摩擦阻礙回復，輸出負載減少：$P_{up} = P_0 \cdot (1 - \mu \cdot \gamma)$。
-    </div>
+    <div class="card-title">Almen-Laszlo 核心公式</div>
+    <div class="formula">P = [4E·t⁴ / ((1−ν²)·De²)] × [K₁(h₀ₑff−s/2)(s/t) + K₂(s/t)²]</div>
+    <div class="formula">h₀ₑff = h₀ − 2R　　（角落修正後的有效錐高）
+K₁ = (1/π)·[(δ−1)/δ]²/ln(δ)　　δ = De/Di
+K₂ = (6/π)·[(δ−1)/ln(δ) − 1]</div>
+    <p class="formula-note">
+      R = 角落尺寸（R角/C角/磨平），發生於外緣底角與內緣頂角各一處<br>
+      每個角落讓接觸點偏移 R，兩個接觸點合計使有效錐高減少 2R<br>
+      h₀ = 名義錐高（圖面尺寸）　　h₀ₑff = h₀ − 2R（計算用有效值）<br>
+      De = 外徑　　Di = 內徑　　t = 材料厚度　　E = 楊氏模量　　ν = 泊松比　　s = 工作撓度
+    </p>
   </div>
 
-  <footer>Advanced Belleville Spring Engine ｜ 依據 DIN 2092 規範標準實務優化</footer>
+  <footer>Belleville Spring Calculator　｜　Almen-Laszlo (1936)　｜　角落設計 Silence Corner</footer>
 </div>
 
 <script>
 let chartObj = null;
 
-// 同步控制
-const params = ['De','Di','t','h0','s','tPrime','mu'];
-params.forEach(id => {
+// ── slider ↔ number box sync ──
+// 修正：input 事件只同步滑桿，不強制格式化（避免打小數點被清掉）
+// blur 事件才格式化為一位小數
+['De','Di','t','R','h0','s'].forEach(id => {
   const r = document.getElementById(id+'-r');
   const n = document.getElementById(id+'-n');
-  r.addEventListener('input', () => { 
-    if(id==='t') {
-      // 確保 t' 不會大於 t
-      document.getElementById('tPrime-r').max = r.value;
-      document.getElementById('tPrime-n').max = r.value;
-      if(parseFloat(document.getElementById('tPrime-n').value) > parseFloat(r.value)) {
-        document.getElementById('tPrime-n').value = parseFloat(r.value).toFixed(1);
-        document.getElementById('tPrime-r').value = r.value;
-      }
-    }
-    n.value = parseFloat(r.value).toFixed(id==='mu'?2:1); 
-    update(); 
-  });
-  n.addEventListener('input',  () => { syncNum(n, r, id==='mu'?2:1); update(); });
-  n.addEventListener('change', () => { syncNum(n, r, id==='mu'?2:1); update(); });
-});
-document.getElementById('mat').addEventListener('change', update);
 
-function syncNum(n, r, decimals) {
-  let v = parseFloat(n.value);
-  if (isNaN(v)) return;
-  v = Math.min(Math.max(v, parseFloat(n.min)), parseFloat(n.max));
-  n.value = v.toFixed(decimals);
-  r.value = v;
+  r.addEventListener('input', () => {
+    n.value = parseFloat(r.value).toFixed(2);
+    clampR();
+    update();
+  });
+
+  n.addEventListener('input', () => {
+    const v = parseFloat(n.value);
+    if (!isNaN(v)) {
+      const lo = parseFloat(n.min || '0');
+      const hi = parseFloat(n.max || 'Infinity');
+      r.value = Math.min(Math.max(v, lo), hi);
+      clampR();
+      update();
+    }
+  });
+
+  n.addEventListener('blur', () => {
+    let v = parseFloat(n.value);
+    if (isNaN(v)) v = parseFloat(r.value);
+    const lo = parseFloat(n.min || '0');
+    const hi = parseFloat(n.max || 'Infinity');
+    v = Math.min(Math.max(v, lo), hi);
+    n.value = v.toFixed(2);
+    r.value = v;
+    clampR();
+    update();
+  });
+});
+
+// R 不能讓 h0_eff ≤ 0：確保 2R < h0
+function clampR() {
+  const h0Val = parseFloat(document.getElementById('h0-n').value) || 3;
+  const tVal  = parseFloat(document.getElementById('t-n').value)  || 2;
+  const RN = document.getElementById('R-n');
+  const RR = document.getElementById('R-r');
+  // R 最大不超過 h0/2 也不超過 t/2
+  const Rmax = Math.min(h0Val / 2 - 0.01, tVal / 2).toFixed(2);
+  RN.max = Rmax; RR.max = Rmax;
+  let Rv = parseFloat(RN.value) || 0;
+  if (Rv > parseFloat(Rmax)) {
+    Rv = parseFloat(Rmax);
+    RN.value = Rv.toFixed(2);
+    RR.value = Rv;
+  }
 }
+
+document.getElementById('mat').addEventListener('change', update);
 
 function getVals() {
   const mv = document.getElementById('mat').value.split(',');
-  const tVal = parseFloat(document.getElementById('t-n').value);
-  let tpVal = parseFloat(document.getElementById('tPrime-n').value);
-  if(tpVal > tVal) tpVal = tVal; // 安全防線
-  
   return {
     De: parseFloat(document.getElementById('De-n').value),
     Di: parseFloat(document.getElementById('Di-n').value),
-    t:  tVal,
+    t:  parseFloat(document.getElementById('t-n').value),
+    R:  parseFloat(document.getElementById('R-n').value) || 0,
     h0: parseFloat(document.getElementById('h0-n').value),
     s:  parseFloat(document.getElementById('s-n').value),
-    tPrime: tpVal,
-    mu: parseFloat(document.getElementById('mu-n').value),
     E:  parseFloat(mv[0]), nu: parseFloat(mv[1])
   };
 }
 
-// ── DIN 2092 / Almen-Laszlo 核心演算擴充 ──
-function getDINCoeffs(De, Di) {
-  const delta = De / Di;
-  const l = Math.log(delta);
-  
-  const K1 = (1 / Math.PI) * Math.pow((delta - 1) / delta, 2) / l;
-  const K2 = (6 / Math.PI) * ((delta - 1) / l - 1);
-  const K3 = (6 / Math.PI) * ((delta - 1) / l - 2) / (delta - 1); // DIN 2092 標準項
-  
-  return { delta, l, K1, K2, K3 };
+// ── Almen-Laszlo 公式含角落修正 ──
+//
+// R角/C角/磨平發生在四個角點（內緣頂角 × 2 + 外緣底角 × 2）。
+// 每個角點讓接觸位置偏移 R，導致有效錐高減少：
+//   h0_eff = h0 - 2R
+//     → 內緣頂角使上接觸點下移 R
+//     → 外緣底角使下接觸點上移 R
+// t 不變，只有 h0_eff 縮減。
+//
+function calcP(De, Di, t, R, h0, s, E, nu) {
+  const h0_eff = Math.max(h0 - 2*R, 0.001);
+  const d = De/Di, l = Math.log(d);
+  const K1 = (1/Math.PI)*Math.pow((d-1)/d,2)/l;
+  const K2 = (6/Math.PI)*((d-1)/l-1);
+  const sC = Math.min(s, h0_eff * 0.999);
+  return Math.max(0, 4*E*Math.pow(t,4)/((1-nu*nu)*De*De) *
+    (K1*(h0_eff - sC/2)*(sC/t) + K2*Math.pow(sC/t,2)));
 }
 
-// 計算無摩擦基礎理論負載 P0
-function calcP0(De, Di, t, h0, s, tPrime, E, nu) {
-  if (Di >= De || s <= 0) return 0;
-  const { delta, l, K1, K2 } = getDINCoeffs(De, Di);
-  
-  // 截平面幾何修正係數 (DIN 2092 Chapter 4.1)
-  const K4 = Math.sqrt(1 - Math.pow(tPrime/t, 2));
-  
-  // 若有截平面，有效錐高會產生比例遞減
-  // 當 tPrime == t 時，K4 = 0, 幾何不變
-  const factor = 4 * E * Math.pow(t, 4) / ((1 - nu * nu) * De * De * K1);
-  
-  // 引入截平面修正公式
-  if (tPrime < t) {
-    const s_reduced = s / tPrime;
-    const h0_reduced = h0 / t;
-    // DIN 2092 修正公式主體
-    return (4 * E / (1 - nu * nu)) * (Math.pow(tPrime, 4) / (De * De * K1)) * (s/tPrime) * ( (h0/t - s/tPrime)*(h0/t - s/(2*tPrime)) + 1 );
-  } else {
-    // 標準 Almen-Laszlo 公式
-    return factor * ( s/t * ( (h0/t - s/(2*t))*(h0/t - s/t) + 1 ) );
-  }
+function calcStress(De, Di, t, R, h0, s, E, nu) {
+  const h0_eff = Math.max(h0 - 2*R, 0.001);
+  const d = De/Di, l = Math.log(d);
+  const K1 = (1/Math.PI)*Math.pow((d-1)/d,2)/l;
+  const K2 = (6/Math.PI)*((d-1)/l-1);
+  const K3 = (1/Math.PI)*((d-1)/l-1);
+  return Math.abs(4*E*t*t/((1-nu*nu)*De*De*K1) * (K2*(h0_eff-s/2)+K3*t));
 }
 
-// 摩擦力對負荷的影響修正 (Friction Factor Gamma)
-function getFrictionGamma(De, Di, t, h0, s) {
-  // 依據接觸幾何，摩擦力矩臂比值近似常數
-  const delta = De / Di;
-  return (delta + 1) / (delta - 1) * (t / De);
+function calcDiF(De, Di, h0, s, nu) {
+  return Math.max(Di - (De+Di)/4*(s/h0)*(1-nu*.5)*(Di/De), Di*.8);
 }
 
-// 精確 DIN 2092 四點應力計算
-function calcDINStresses(De, Di, t, h0, s, E, nu) {
-  const { delta, l, K1, K2, K3 } = getDINCoeffs(De, Di);
-  
-  // 應力特徵係數
-  const C1 = (delta - 1) / (delta * l);
-  const C2 = (delta - 1) / l;
-  
-  const commonFactor = 4 * E * s / ((1 - nu * nu) * De * De * K1);
-  
-  // 點 I (內緣頂面 - 壓應力)
-  const sigmaI = -commonFactor * ( (K2 - K3/2)*(h0 - s/2) + K3*t );
-  
-  // 點 II (內緣底面 - 壓應力/拉應力轉換)
-  const sigmaII = -commonFactor * ( (K2 - K3/2)*(h0 - s/2) - K3*t );
-  
-  // 點 III (外緣底面 - 主要拉應力，疲勞壽命指標)
-  const sigmaIII = commonFactor * (1 / delta) * ( (K2 - K3)*(h0 - s/2) + K3*t );
-  
-  // 點 IV (外緣頂面 - 壓應力)
-  const sigmaIV = commonFactor * (1 / delta) * ( (K2 - K3)*(h0 - s/2) - K3*t );
-  
-  return {
-    s1: Math.abs(sigmaI),
-    s2: Math.abs(sigmaII),
-    s3: sigmaIII, // 保持正值代表拉應力
-    s4: Math.abs(sigmaIV)
-  };
-}
-
-// ── 繪製更完整的幾何與應力標註圖 ──
-function drawDiagram(De, Di, t, h0, sVal, tPrime) {
+// ── Cross-section canvas ──
+//
+// 正確幾何（右半，由外往內）：
+//   P1 外緣底面, P2 內緣底面, P3 內緣頂面, P4 外緣頂面
+//
+// R角發生在 4 個接觸角點（黃色）：
+//   ① 外緣底角（P1 附近）：外緣底面往上 R → 實際支撐點上移 R
+//   ② 內緣頂角（P3 附近）：內緣頂面往下 R → 實際加壓點下移 R
+//   → 有效錐高 h0_eff = h0 - 2R
+//
+function drawDiagram(De, Di, t, R, h0, sVal) {
   const cv  = document.getElementById('dimCanvas');
   const dpr = window.devicePixelRatio || 1;
   const displayW = cv.offsetWidth;
-  const displayH = 380;
+  const displayH = 420;
   cv.width  = displayW * dpr;
   cv.height = displayH * dpr;
   cv.style.height = displayH + 'px';
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
-  
   const W = displayW, H = displayH;
   ctx.clearRect(0, 0, W, H);
 
   const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
   const cStroke = isDark ? '#9c9a92' : '#3d3d3a';
   const cFill   = isDark ? '#1e2d42' : '#D6E8F7';
+  const cFillP  = isDark ? '#0d2e22' : '#C5E8D5';
   const cBlue   = isDark ? '#85B7EB' : '#185FA5';
+  const cRed    = isDark ? '#F09595' : '#A32D2D';
   const cAmber  = isDark ? '#F9CB42' : '#BA7517';
+  const cGold   = isDark ? '#F9CB42' : '#B8860B'; // R角標示色（黃色調）
   const cText   = isDark ? '#c2c0b6' : '#3d3d3a';
   const cMuted  = '#888780';
-  const cRed    = '#E24B4A';
+  const cDash   = isDark ? '#9FE1CB' : '#0F6E56';
 
-  const padL = 60, drawW = W - 120, cx = padL + drawW / 2;
-  const scale = Math.min((drawW * 0.45) / (De / 2), 14);
-  
+  const padL = 75, padR = 40, panelH = H / 2;
+  const drawW = W - padL - padR;
+  const cx = padL + drawW / 2;
+  const scale = Math.min((drawW * 0.44) / (De / 2), 14);
   const rOut = De/2*scale, rIn = Di/2*scale;
-  const tS = t*scale, tpS = tPrime*scale, h0S = h0*scale;
-  const baseY = H - 80;
+  const tS   = t  * scale;
+  const h0S  = h0 * scale;
+  const RS   = R  * scale;          // R角像素大小
+  const h0EffS = Math.max(h0S - 2*RS, 1); // 有效錐高（像素）
 
-  // 繪製含截平面的碟形彈簧剖面 (右側)
-  ctx.beginPath();
-  // 右側幾何
-  ctx.moveTo(cx + rOut, baseY); // 外底角
-  ctx.lineTo(cx + rIn, baseY - h0S); // 內底角
-  ctx.lineTo(cx + rIn, baseY - h0S - tpS); // 內頂平面切線
-  ctx.lineTo(cx + rOut, baseY - tS); // 外頂平面切線
-  ctx.closePath();
-  
-  // 左側幾何
-  ctx.moveTo(cx - rOut, baseY);
-  ctx.lineTo(cx - rIn, baseY - h0S);
-  ctx.lineTo(cx - rIn, baseY - h0S - tpS);
-  ctx.lineTo(cx - rOut, baseY - tS);
-  ctx.closePath();
-  
-  ctx.fillStyle = cFill; ctx.fill();
-  ctx.strokeStyle = cStroke; ctx.lineWidth = 1.5; ctx.stroke();
+  // ── helper functions ──
+  function arrowV(x, y1, y2, col) {
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke();
+    [[y1,1],[y2,-1]].forEach(([y,d]) => {
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+d*8); ctx.lineTo(x+3,y+d*8); ctx.closePath(); ctx.fill();
+    });
+  }
+  function arrowH(x1, x2, y, col) {
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke();
+    [[x1,1],[x2,-1]].forEach(([x,d]) => {
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+d*8,y-3); ctx.lineTo(x+d*8,y+3); ctx.closePath(); ctx.fill();
+    });
+  }
+  function dashV(x, y1, y2, col) {
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=0.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke(); ctx.restore();
+  }
+  function dashH(x1, x2, y, col, pat) {
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=pat?1:0.5; ctx.setLineDash(pat||[4,3]);
+    ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke(); ctx.restore();
+  }
+  function lbl(str, x, y, align, col, weight) {
+    ctx.fillStyle = col||cText;
+    ctx.font = (weight||'400')+' 11px -apple-system,sans-serif';
+    ctx.textAlign = align||'center';
+    ctx.fillText(str, x, y);
+  }
 
-  // 標註四個關鍵應力點位置 (右側剖面)
-  const pts = [
-    { name: 'I',   x: cx + rIn,  y: baseY - h0S - tpS, ox: -12, oy: -5 },
-    { name: 'II',  x: cx + rIn,  y: baseY - h0S,       ox: -12, oy: 12 },
-    { name: 'III', x: cx + rOut, y: baseY,             ox: 12,  oy: 12 },
-    { name: 'IV',  x: cx + rOut, y: baseY - tS,        ox: 12,  oy: -5 }
-  ];
-  
-  pts.forEach(p => {
+  // 畫彈片截面主體，含 R角標示
+  // baseY = 外緣底面 y
+  // h0draw = 此狀態的錐高（mm，會被 scale 換算）
+  // showR = 是否畫 R角弧形
+  function drawSpring(baseCX, baseY, h0draw, fillColor, showR) {
+    const hS = h0draw * scale;
+    const RS_ = Math.min(RS, hS * 0.45, tS * 0.45); // 確保 R 不超過幾何
+
+    // ── 主體輪廓 ──
+    // 右半頂點：
+    // P1 (外緣底) → P2 (內緣底) → P3 (內緣頂) → P4 (外緣頂)
+    // 在 P1 和 P3 加 R 角（C角用斜切表示）
+    const p1x = baseCX+rOut, p1y = baseY;           // 外緣底
+    const p2x = baseCX+rIn,  p2y = baseY - hS;      // 內緣底
+    const p3x = baseCX+rIn,  p3y = baseY - hS - tS; // 內緣頂
+    const p4x = baseCX+rOut, p4y = baseY - tS;       // 外緣頂
+
+    // 右半（帶 R 角，用斜切近似 C 角）
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, 2*Math.PI);
-    ctx.fillStyle = cRed;
-    ctx.fill();
-    ctx.fillStyle = cText;
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(p.name, p.x + p.ox, p.y + p.oy);
-  });
+    if (showR && RS_ > 1) {
+      // P4 → P1（外緣，由上往下）
+      ctx.moveTo(p4x, p4y);
+      // P1 外緣底角：往右下角用斜切
+      ctx.lineTo(p1x, p1y - RS_);
+      ctx.lineTo(p1x - RS_, p1y);   // C角斜切（外緣底部往內偏）
+      // P2 內緣底（無 R 角）
+      ctx.lineTo(p2x + RS_, p2y);   // 靠近 P2 但不在最底
+      ctx.lineTo(p2x, p2y - RS_);   // 內緣底角（如果需要也可有 R，這裡不截）
+      // P3 內緣頂角：
+      ctx.lineTo(p3x, p3y + RS_);
+      ctx.lineTo(p3x + RS_, p3y);   // C角斜切（內緣頂部往外偏）
+      // P4 外緣頂（無截平）
+      ctx.lineTo(p4x, p4y);
+    } else {
+      ctx.moveTo(p1x, p1y);
+      ctx.lineTo(p2x, p2y);
+      ctx.lineTo(p3x, p3y);
+      ctx.lineTo(p4x, p4y);
+    }
+    ctx.closePath();
 
-  // 標註線與文字
-  ctx.fillStyle = cMuted;
-  ctx.font = '11px sans-serif';
-  ctx.fillText('← DIN 2092 應力特徵點 (I, II, III, IV)', cx + rOut + 25, baseY - h0S/2);
+    // 左半（鏡像）
+    const lp1x = baseCX-rOut, lp1y = p1y;
+    const lp2x = baseCX-rIn,  lp2y = p2y;
+    const lp3x = baseCX-rIn,  lp3y = p3y;
+    const lp4x = baseCX-rOut, lp4y = p4y;
+    ctx.moveTo(lp4x, lp4y);
+    if (showR && RS_ > 1) {
+      ctx.lineTo(lp1x, lp1y - RS_);
+      ctx.lineTo(lp1x + RS_, lp1y);
+      ctx.lineTo(lp2x - RS_, lp2y);
+      ctx.lineTo(lp2x, lp2y - RS_);
+      ctx.lineTo(lp3x, lp3y + RS_);
+      ctx.lineTo(lp3x - RS_, lp3y);
+      ctx.lineTo(lp4x, lp4y);
+    } else {
+      ctx.moveTo(lp1x, lp1y);
+      ctx.lineTo(lp2x, lp2y);
+      ctx.lineTo(lp3x, lp3y);
+      ctx.lineTo(lp4x, lp4y);
+    }
+    ctx.closePath();
+
+    ctx.fillStyle = fillColor; ctx.fill();
+    ctx.strokeStyle = cStroke; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // ── R角高亮（黃色）── 在四個截角處畫黃色小標記
+    if (showR && RS_ > 1) {
+      ctx.strokeStyle = cGold; ctx.lineWidth = 2;
+      // 右側外緣底角
+      ctx.beginPath(); ctx.moveTo(p1x, p1y - RS_); ctx.lineTo(p1x - RS_, p1y); ctx.stroke();
+      // 右側內緣頂角
+      ctx.beginPath(); ctx.moveTo(p3x, p3y + RS_); ctx.lineTo(p3x + RS_, p3y); ctx.stroke();
+      // 左側外緣底角
+      ctx.beginPath(); ctx.moveTo(lp1x, lp1y - RS_); ctx.lineTo(lp1x + RS_, lp1y); ctx.stroke();
+      // 左側內緣頂角
+      ctx.beginPath(); ctx.moveTo(lp3x, lp3y + RS_); ctx.lineTo(lp3x - RS_, lp3y); ctx.stroke();
+      // 小圓點標記角點
+      [
+        [p1x,  p1y],
+        [p3x,  p3y],
+        [lp1x, lp1y],
+        [lp3x, lp3y]
+      ].forEach(([px,py]) => {
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, 2*Math.PI);
+        ctx.fillStyle = cGold; ctx.fill();
+      });
+    }
+
+    return { p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y, RS_ };
+  }
+
+  // ── UPPER: free state ──
+  const baseY1   = panelH - 30;
+  const outerBot = baseY1;
+  const outerTop = baseY1 - tS;
+  const innerBot = baseY1 - h0S;
+  const innerTop = baseY1 - h0S - tS;
+
+  const sp1 = drawSpring(cx, baseY1, h0, cFill, RS > 0);
+
+  // h₀: 外緣底面 → 內緣底面（左側，名義值）
+  const dxH0 = cx - rOut - 36;
+  dashH(cx-rOut, dxH0+2, outerBot, cBlue);
+  dashH(cx-rIn,  dxH0+2, innerBot, cBlue);
+  arrowV(dxH0, outerBot, innerBot, cBlue);
+  lbl('h₀', dxH0-8, (outerBot+innerBot)/2+4, 'right', cBlue, '500');
+
+  // h0_eff: 只在 R > 0 時顯示有效錐高（灰色輔助線）
+  if (RS > 0.5) {
+    const effBotY = outerBot - sp1.RS_;  // 外緣底角接觸點（上移 R）
+    const effTopY = innerTop + sp1.RS_;  // 內緣頂角接觸點（下移 R）
+
+    // 虛線標示有效接觸位置
+    ctx.save(); ctx.strokeStyle = cGold; ctx.lineWidth = 0.8; ctx.setLineDash([5,3]);
+    ctx.beginPath(); ctx.moveTo(cx-rOut-8, effBotY); ctx.lineTo(cx+rOut+8, effBotY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx-rIn-8,  effTopY); ctx.lineTo(cx+rIn+8,  effTopY); ctx.stroke();
+    ctx.restore();
+
+    // h0_eff 標注（右側，黃色）
+    const dxEff = cx + rOut + 22;
+    dashH(cx+rOut, dxEff-2, effBotY, cGold);
+    dashH(cx+rIn,  dxEff-2, effTopY, cGold);
+    arrowV(dxEff, effBotY, effTopY, cGold);
+    lbl('h₀-2R', dxEff+8, (effBotY+effTopY)/2+4, 'left', cGold, '500');
+
+    // R 尺寸標注（在外緣底角）
+    const dxT = cx + rOut + 22;
+    lbl('R='+R.toFixed(2), cx+rIn+8, innerTop - sp1.RS_ - 8, 'left', cGold, '500');
+  } else {
+    // 無 R 角時標示 t
+    const dxT = cx + rOut + 22;
+    dashH(cx+rOut, dxT-2, outerBot, cAmber);
+    dashH(cx+rOut, dxT-2, outerTop, cAmber);
+    arrowV(dxT, outerBot, outerTop, cAmber);
+    lbl('t = '+t.toFixed(1)+' mm', dxT+8, (outerBot+outerTop)/2+4, 'left', cAmber, '500');
+  }
+
+  // t（始終標在右側外緣）
+  if (RS > 0.5) {
+    const dxT2 = cx + rOut + 55;
+    dashH(cx+rOut, dxT2-2, outerBot, cAmber);
+    dashH(cx+rOut, dxT2-2, outerTop, cAmber);
+    arrowV(dxT2, outerBot, outerTop, cAmber);
+    lbl('t='+t.toFixed(1), dxT2+6, (outerBot+outerTop)/2+4, 'left', cAmber, '500');
+  }
+
+  // De & Di
+  const yDe = outerBot+22, yDi = outerBot+38;
+  [cx-rOut,cx+rOut].forEach(x => dashV(x, outerBot, yDe+4, cMuted));
+  [cx-rIn, cx+rIn ].forEach(x => dashV(x, innerBot, yDi+4, cMuted));
+  arrowH(cx-rOut, cx+rOut, yDe, cBlue);
+  lbl('De = '+De.toFixed(1)+' mm', cx, yDe+13, 'center', cBlue, '500');
+  arrowH(cx-rIn, cx+rIn, yDi, cDash);
+  lbl('Di = '+Di.toFixed(1)+' mm', cx, yDi+13, 'center', cDash, '500');
+
+  lbl('自由狀態', padL, 15, 'left', cText, '600');
+
+  // ── LOWER: pressed state ──
+  const baseY2 = H - 50;
+  const sC = Math.min(sVal, Math.max(h0 - 2*R, 0.01) * 0.98);
+  const h0P  = h0  - sC;  // 受壓後名義錐高
+  const h0PS = h0P * scale;
+
+  drawSpring(cx, baseY2, h0P, cFillP, RS > 0);
+
+  // 虛線基準：自由狀態內緣頂面（未修正）
+  const freeInnerTop_2  = baseY2 - h0S  - tS;
+  const pressInnerTop_2 = baseY2 - h0PS - tS;
+  dashH(padL-10, W-padR+10, freeInnerTop_2, cDash, [9,5]);
+
+  // s 標注
+  const sX = cx + rIn + 52;
+  ctx.save(); ctx.strokeStyle=cRed; ctx.lineWidth=0.5; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cx+rIn, pressInnerTop_2); ctx.lineTo(sX-2, pressInnerTop_2); ctx.stroke();
+  ctx.restore();
+  arrowV(sX, freeInnerTop_2, pressInnerTop_2, cRed);
+  lbl('s = '+sC.toFixed(1)+' mm', sX+8, (freeInnerTop_2+pressInnerTop_2)/2+4, 'left', cRed, '500');
+
+  lbl('受壓狀態', padL, panelH+15, 'left', cText, '600');
 }
 
-// ── 主更新程序 ──
+// ── Main update ──
 function update() {
-  const { De, Di, t, h0, s, tPrime, mu, E, nu } = getVals();
-  
-  // 限制計算防止溢出
-  const sC = Math.min(s, h0 * 0.99);
+  const {De, Di, t, R, h0, s, E, nu} = getVals();
+  const h0_eff = Math.max(h0 - 2*R, 0.001);
+  const sC = Math.min(s, h0_eff * 0.99);
 
-  // 1. 理論負載
-  const P0 = calcP0(De, Di, t, h0, sC, tPrime, E, nu);
-  
-  // 2. 考慮摩擦力修正
-  const gamma = getFrictionGamma(De, Di, t, h0, sC);
-  const frictionFactor = mu * gamma;
-  
-  // 防止分母為零的物理不合理狀態
-  const P_down = (frictionFactor < 1) ? P0 / (1 - frictionFactor) : P0 * (1 + frictionFactor);
-  const P_up = P0 * (1 - frictionFactor);
+  const P   = calcP(De, Di, t, R, h0, sC, E, nu);
+  const P2  = calcP(De, Di, t, R, h0, Math.min(sC + 0.01, h0_eff * 0.99), E, nu);
+  const sig = calcStress(De, Di, t, R, h0, sC, E, nu);
+  const ht  = h0_eff / t;   // h₀/t 用有效值計算
+  const DiF = calcDiF(De, Di, h0_eff, sC, nu);
 
-  // 3. 切線彈簧率 k (使用微小差分計算)
-  const deltaS = 0.005;
-  const P0_delta = calcP0(De, Di, t, h0, sC + deltaS, tPrime, E, nu);
-  const k_tangent = (P0_delta - P0) / deltaS;
-
-  // 4. 正統應力分析
-  const stresses = calcDINStresses(De, Di, t, h0, sC, E, nu);
-
-  // 介面更新
-  document.getElementById('r-P0').textContent  = P0.toFixed(1);
-  document.getElementById('r-Pdown').textContent = P_down.toFixed(1);
-  document.getElementById('r-Pup').textContent   = Math.max(0, P_up).toFixed(1);
-  document.getElementById('r-k').textContent   = k_tangent.toFixed(1);
-  
-  document.getElementById('r-sigma1').textContent = stresses.s1.toFixed(0);
-  document.getElementById('r-sigma2').textContent = stresses.s2.toFixed(0);
-  document.getElementById('r-sigma3').textContent = stresses.s3.toFixed(0);
-  document.getElementById('r-sigma4').textContent = stresses.s4.toFixed(0);
-
-  const ht = h0 / t;
+  document.getElementById('r-P').textContent  = P.toFixed(1);
+  document.getElementById('r-k').textContent  = ((P2 - P) / 0.01).toFixed(1);
+  document.getElementById('r-si').textContent = sig.toFixed(0);
+  document.getElementById('r-ht').textContent = ht.toFixed(2);
+  document.getElementById('r-di').textContent = DiF.toFixed(2);
   document.getElementById('ht-now').textContent = ht.toFixed(2);
 
-  // 特性區間指示條
+  const sq2 = Math.SQRT2;
   document.getElementById('ht-linear').style.width    = Math.min(Math.min(ht,.4)/.4*100,100).toFixed(0)+'%';
-  document.getElementById('ht-nonlinear').style.width = (ht>.4 ? Math.min((ht-.4)/(Math.SQRT2-.4)*100,100) : 0).toFixed(0)+'%';
-  document.getElementById('ht-const').style.width     = (Math.abs(ht-Math.SQRT2)<.1 ? 100 : (ht>Math.SQRT2-.15&&ht<Math.SQRT2+.25 ? 70 : 0)).toFixed(0)+'%';
-  document.getElementById('ht-neg').style.width       = (ht>Math.SQRT2 ? Math.min((ht-Math.SQRT2)/.5*100,100) : 0).toFixed(0)+'%';
+  document.getElementById('ht-nonlinear').style.width = (ht>.4 ? Math.min((ht-.4)/(sq2-.4)*100,100) : 0).toFixed(0)+'%';
+  document.getElementById('ht-const').style.width     = (Math.abs(ht-sq2)<.1 ? 100 : (ht>sq2-.15&&ht<sq2+.25 ? 70 : 0)).toFixed(0)+'%';
+  document.getElementById('ht-neg').style.width       = (ht>sq2 ? Math.min((ht-sq2)/.5*100,100) : 0).toFixed(0)+'%';
 
   let htDesc = '', htColor = '#888780';
-  if      (ht < 0.4) { htDesc = '優良線性區 (適合精密量測)';            htColor = '#1D9E75'; }
-  else if (ht < 1.2) { htDesc = '漸硬非線性區';                       htColor = '#BA7517'; }
-  else if (ht < 1.5) { htDesc = '恆定負荷區 (適合緊固件、離合器)';      htColor = '#185FA5'; }
-  else               { htDesc = 'Snap-through 負剛度危險區';         htColor = '#A32D2D'; }
+  if      (ht < 0.4) { htDesc = '近似線性特性';                  htColor = '#1D9E75'; }
+  else if (ht < 1.2) { htDesc = '非線性漸硬特性';                htColor = '#BA7517'; }
+  else if (ht < 1.5) { htDesc = '趨近恆力特性';                  htColor = '#185FA5'; }
+  else               { htDesc = '可能出現負剛度（snap-through）'; htColor = '#A32D2D'; }
   const el = document.getElementById('ht-desc');
   el.textContent = htDesc; el.style.color = htColor;
 
-  // 系統安全預警檢測
-  const warns = [];
-  if (s >= h0)    warns.push('⚠ 警告：撓度已超過自由錐高，彈簧已完全壓平（或產生反向翻轉）。');
-  if (Di >= De)   warns.push('⚠ 錯誤：內徑不能大於或等於外徑。');
-  if (tPrime > t) warns.push('⚠ 幾何錯誤：截平面厚度 t\' 不得大於材料原始厚度 t。');
-  if (stresses.s3 > 1400) warns.push('⚠ 疲勞警告：點 III 的拉應力過高 (&gt; 1400 MPa)，在循環高頻工作下極易發生疲勞斷裂。');
-  if (stresses.s1 > 2000) warns.push('⚠ 屈服警告：內緣頂面壓應力過大，可能會產生永久性的塑性變形。');
-  
+  const matStr = document.getElementById('mat').value;
+  const isAl   = matStr.startsWith('71') || matStr.startsWith('72');
+  const warns  = [];
+  if (s >= h0_eff)       warns.push('⚠ 撓度 s 超過有效錐高（h₀−2R），彈片已壓平，請減少 s。');
+  if (Di >= De)          warns.push('⚠ 內徑不能大於外徑。');
+  if (2*R >= h0)         warns.push('⚠ 角落尺寸 R 過大（2R ≥ h₀），有效錐高已消失，請減小 R 或增大 h₀。');
+  if (ht > sq2)          warns.push('⚠ (h₀−2R)/t > √2，可能產生 snap-through 負剛度行為，需謹慎設計。');
+  if (!isAl && sig>1400) warns.push('⚠ 內緣應力 > 1400 MPa，超過一般彈簧鋼許用應力，請調整尺寸。');
+  if (isAl  && sig>450)  warns.push('⚠ 鋁合金應力偏高（AL7075 許用約 400–500 MPa），請確認是否在材料極限內。');
+  if (t < 0.5)           warns.push('⚠ 厚度 < 0.5 mm，屬極薄片，製造公差與疲勞壽命需特別注意。');
   const wb = document.getElementById('warn-box');
   wb.style.display = warns.length ? 'block' : 'none';
   wb.innerHTML = warns.join('<br>');
 
-  drawDiagram(De, Di, t, h0, sC, tPrime);
-  updateChart(De, Di, t, h0, tPrime, mu, E, nu, sC);
+  drawDiagram(De, Di, t, R, h0, sC);
+  updateChart(De, Di, t, R, h0, E, nu, sC);
 }
 
-// ── 繪製包含遲滯迴圈 (Hysteresis Loop) 的新圖表 ──
-function updateChart(De, Di, t, h0, tPrime, mu, E, nu, sC) {
-  const labels = [], dataP0 = [], dataPDown = [], dataPUp = [];
-  const steps = 40;
-  
-  for (let i = 0; i <= steps; i++) {
-    const sv = h0 * (i / steps) * 0.99;
+function updateChart(De, Di, t, R, h0, E, nu, sC) {
+  const h0_eff = Math.max(h0 - 2*R, 0.001);
+  const labels = [], data = [];
+  for (let i = 0; i <= 40; i++) {
+    const sv = h0_eff * (i/40) * 0.99;
     labels.push(sv.toFixed(2));
-    
-    const p0 = calcP0(De, Di, t, h0, sv, tPrime, E, nu);
-    const gamma = getFrictionGamma(De, Di, t, h0, sv);
-    const fFact = mu * gamma;
-    
-    const pDown = (fFact < 1) ? p0 / (1 - fFact) : p0 * (1 + fFact);
-    const pUp = p0 * (1 - fFact);
-    
-    dataP0.push(parseFloat(p0.toFixed(1)));
-    dataPDown.push(parseFloat(pDown.toFixed(1)));
-    dataPUp.push(parseFloat(Math.max(0, pUp).toFixed(1)));
+    data.push(parseFloat(calcP(De,Di,t,R,h0,sv,E,nu).toFixed(2)));
   }
-
-  // 當前工作點標註
-  const curP0 = calcP0(De, Di, t, h0, sC, tPrime, E, nu);
-  const curGamma = getFrictionGamma(De, Di, t, h0, sC);
-  const curPDown = (mu * curGamma < 1) ? curP0 / (1 - mu * curGamma) : curP0 * (1 + mu * curGamma);
-
-  const dotMarker = Array(steps + 1).fill(null);
-  const idx = Math.round((sC / (h0 * 0.99)) * steps);
-  if (idx >= 0 && idx <= steps) {
-    dotMarker[idx] = parseFloat(curPDown.toFixed(1));
-  }
+  const cp   = calcP(De, Di, t, R, h0, sC, E, nu);
+  const dots = Array(41).fill(null).map((_,i) => {
+    const sv = h0_eff*(i/40)*0.99;
+    return Math.abs(sv-sC) < h0_eff/40*.6 ? parseFloat(cp.toFixed(2)) : null;
+  });
 
   if (!chartObj) {
     chartObj = new Chart(document.getElementById('chart').getContext('2d'), {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label: '下壓曲線 P_down (含摩擦)', data: dataPDown, borderColor: '#E24B4A', borderWidth: 2, pointRadius: 0, tension: 0.2, fill: false },
-          { label: '釋放曲線 P_up (含摩擦)', data: dataPUp, borderColor: '#378ADD', borderWidth: 2, pointRadius: 0, tension: 0.2, fill: false },
-          { label: '理論無摩擦 P₀', data: dataP0, borderColor: '#1D9E75', borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, tension: 0.2, fill: false },
-          { label: '目前下壓工作點', data: dotMarker, borderColor: '#E24B4A', backgroundColor: '#E24B4A', pointRadius: 6, showLine: false }
-        ]
-      },
+      data: { labels, datasets: [
+        { label:'P(N)', data, borderColor:'#1D9E75', backgroundColor:'rgba(29,158,117,0.1)', borderWidth:2, pointRadius:0, tension:.3, fill:true },
+        { label:'工作點', data:dots, borderColor:'#E24B4A', backgroundColor:'#E24B4A', pointRadius:7, showLine:false }
+      ]},
       options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: true, labels: { font: { size: 11 } } } },
-        scales: {
-          x: { title: { display: true, text: '工作撓度 s (mm)' } },
-          y: { title: { display: true, text: '端面阻抗負載 P (N)' } }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{
+          x:{ title:{ display:true, text:'撓度 s (mm)', font:{size:12} }, ticks:{ maxTicksLimit:8, font:{size:11} } },
+          y:{ title:{ display:true, text:'負載 P (N)',  font:{size:12} }, ticks:{ font:{size:11} } }
         }
       }
     });
   } else {
     chartObj.data.labels = labels;
-    chartObj.data.datasets[0].data = dataPDown;
-    chartObj.data.datasets[1].data = dataPUp;
-    chartObj.data.datasets[2].data = dataP0;
-    chartObj.data.datasets[3].data = dotMarker;
+    chartObj.data.datasets[0].data = data;
+    chartObj.data.datasets[1].data = dots;
     chartObj.update('none');
   }
 }
 
-window.addEventListener('resize', update);
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(update, 150); });
+
 update();
 </script>
 </body>
