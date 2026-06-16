@@ -348,7 +348,18 @@ function calcStress(De, Di, t, d, h0, s, E, nu) {
 }
 
 function calcDiF(De, Di, h0, s, nu) {
-  return Math.max(Di - (De+Di)/4*(s/h0)*(1-nu*.5)*(Di/De), Di*.8);
+  // 1. 計算基本幾何參數（與主程式核心公式一致）
+  const h0_eff = Math.max(h0, 0.001); 
+  const sC = Math.min(s, h0_eff * 0.999);
+  
+  // 2. 依據 DIN 標準幾何旋轉模型（剛體旋轉投影）
+  // 碟簧受壓時，截面繞中性半徑旋轉，其內徑接觸點的水平投影縮小量
+  // 壓平狀態（s = h0_eff）下的理論縮小量大約為： (h0_eff^2) / (De - Di)
+  // 隨撓度 s 的動態變量公式如下：
+  const deltaDi = (sC * (2 * h0_eff - sC)) / (De - Di);
+  
+  // 3. 回傳計算後的最終內徑（並保留原本的 0.8 倍下限防呆機制）
+  return Math.max(Di - deltaDi, Di * 0.8);
 }
 
 // ── Cross-section canvas ──
