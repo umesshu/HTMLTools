@@ -601,8 +601,8 @@ function drawDiagram(De, Di, t, d, h0, sVal) {
 // ── Main update ──
 function update() {
   const {De, Di, t, d, h0, s, E, nu} = getVals();
-  const h0_eff = Math.max(h0 - 2*d, 0.001);
-  const sC = Math.min(s, h0_eff * 0.99);
+  const h0_eff = Math.max(h0, 0.001); // 修正：完全壓平的最大可壓位移上限就是自由錐高 h0 
+  const sC = Math.min(s, h0_eff * 0.999);
 
   const P   = calcP(De, Di, t, d, h0, sC, E, nu);
   const P2  = calcP(De, Di, t, d, h0, Math.min(sC + 0.01, h0_eff * 0.99), E, nu);
