@@ -165,12 +165,11 @@ footer {
 
 <header>
   <h1>Belleville Spring 碟形彈簧計算器</h1>
-  <p>Almen-Laszlo 公式　｜　即時計算負載、應力、彈簧率</p>
+  <p>Almen-Laszlo 公式 ｜ 即時計算負載、應力、彈簧率</p>
 </header>
 
 <div class="container">
 
-  <!-- 幾何參數 -->
   <div class="card">
     <div class="card-title">幾何參數</div>
     <div class="param-row"><label>外徑 De</label><input type="range" id="De-r" min="1" max="100" value="40" step="0.1"><input type="number" id="De-n" min="1" max="100" value="40" step="0.1"><span class="unit">mm</span></div>
@@ -195,7 +194,6 @@ footer {
     </div>
   </div>
 
-  <!-- 計算結果 -->
   <div class="card">
     <div class="card-title">計算結果</div>
     <div class="results-grid">
@@ -208,20 +206,17 @@ footer {
     <div class="warn" id="warn-box"></div>
   </div>
 
-  <!-- 截面示意圖 -->
   <div class="card">
     <div class="card-title">截面尺寸示意圖</div>
-    <p class="def-note">h₀ = 外緣底面 → 內緣底面名義高度差（不含 t）　　t = 外緣處材料垂直厚度　　d = 磨平高度（黃色水平線，每個角點磨去 d，有效高度 = h₀+t−2d）</p>
+    <p class="def-note">h₀ = 外緣底面 → 內緣底面名義高度差（不含 t）  t = 外緣處材料垂直厚度  d = 磨平高度（黃色水平線，每個角點磨去 d，有效高度 = h₀+t−2d）</p>
     <canvas id="dimCanvas" height="420"></canvas>
   </div>
 
-  <!-- 負載-撓度曲線 -->
   <div class="card">
     <div class="card-title">負載–撓度曲線</div>
     <div style="position:relative;height:220px"><canvas id="chart"></canvas></div>
   </div>
 
-  <!-- h₀/t 區段 -->
   <div class="card">
     <div class="card-title">h₀/t 特性區段</div>
     <div class="ht-bar"><span class="ht-label">線性區 (&lt;0.4)</span><div class="ht-track"><div class="ht-fill" id="ht-linear"    style="background:#1D9E75"></div></div></div>
@@ -231,30 +226,27 @@ footer {
     <p style="font-size:12px;color:var(--text3);margin-top:8px">目前 h₀/t = <strong id="ht-now">—</strong> → <span id="ht-desc" style="font-weight:500">—</span></p>
   </div>
 
-  <!-- 公式 -->
   <div class="card">
     <div class="card-title">Almen-Laszlo 核心公式</div>
     <div class="formula">P = [4E·t⁴ / ((1−ν²)·De²)] × [K₁(h₀ₑff−s/2)(s/t) + K₂(s/t)²]</div>
-    <div class="formula">h₀ₑff = h₀ − 2d　　（有效錐高，磨平修正後）
-K₁ = (1/π)·[(δ−1)/δ]²/ln(δ)　　δ = De/Di
+    <div class="formula">h₀ₑff = h₀ − 2d  （有效錐高，磨平修正後）
+K₁ = (1/π)·[(δ−1)/δ]²/ln(δ)  δ = De/Di
 K₂ = (6/π)·[(δ−1)/ln(δ) − 1]</div>
     <p class="formula-note">
       d = 磨平高度，發生於外緣底角與內緣頂角各一處，每處磨去垂直高度 d<br>
       外緣底角磨平 → 支撐點上移 d；內緣頂角磨平 → 加壓點下移 d<br>
-      有效總高度 h₀+t−2d　　其中 h₀ = 名義錐高，t = 材料厚度，h₀ₑff = h₀−2d（計算用）<br>
-      De = 外徑　　Di = 內徑　　E = 楊氏模量　　ν = 泊松比　　s = 工作撓度
+      有效總高度 h₀+t−2d  其中 h₀ = 名義錐高，t = 材料厚度，h₀ₑff = h₀−2d（計算用）<br>
+      De = 外徑  Di = 內徑  E = 楊氏模量  ν = 泊松比  s = 工作撓度
     </p>
   </div>
 
-  <footer>Belleville Spring Calculator　｜　Almen-Laszlo (1936)　｜　角落設計 Silence Corner</footer>
+  <footer>Belleville Spring Calculator ｜ Almen-Laszlo (1936) ｜ 角落設計 Silence Corner</footer>
 </div>
 
 <script>
 let chartObj = null;
 
 // ── slider ↔ number box sync ──
-// 修正：input 事件只同步滑桿，不強制格式化（避免打小數點被清掉）
-// blur 事件才格式化為一位小數
 ['De','Di','t','d','h0','s'].forEach(id => {
   const r = document.getElementById(id+'-r');
   const n = document.getElementById(id+'-n');
@@ -289,13 +281,12 @@ let chartObj = null;
   });
 });
 
-// d 不能讓 h0_eff ≤ 0：確保 2d < h0
+// d 不能讓有效厚度或高度消失：確保 2d < h0
 function clampD() {
   const h0Val = parseFloat(document.getElementById('h0-n').value) || 3;
   const tVal  = parseFloat(document.getElementById('t-n').value)  || 2;
   const dN = document.getElementById('d-n');
   const dR = document.getElementById('d-r');
-  // d 最大不超過 h0/2 也不超過 t/2
   const dMax = Math.min(h0Val / 2 - 0.01, tVal / 2).toFixed(2);
   dN.max = dMax; dR.max = dMax;
   let dv = parseFloat(dN.value) || 0;
@@ -321,62 +312,72 @@ function getVals() {
   };
 }
 
-// ── Almen-Laszlo 公式含磨平修正 ──
-//
-// 磨平高度 d 發生在兩個接觸角點：
-//   ① 外緣底角：支撐點上移 d
-//   ② 內緣頂角：加壓點下移 d
-//   → 有效錐高 h0_eff = h0 - 2d（t 不變）
-//
+// ── 修正：Almen-Laszlo 公式（導入 DIN 2092 磨平修正版） ──
 function calcP(De, Di, t, d, h0, s, E, nu) {
+  const dR = De / Di;
+  const l = Math.log(dR);
+  
+  const K1 = (1 / Math.PI) * Math.pow((dR - 1) / dR, 2) / l;
+  const K2 = (6 / Math.PI) * ((dR - 1) / l - 1);
+  
+  // 修正：完全壓扁的最大可移動位移上限就是完整的自由錐高 h0
   const h0_eff = Math.max(h0, 0.001);
-  const dR = De/Di, l = Math.log(dR);
-  const K1 = (1/Math.PI)*Math.pow((dR-1)/dR,2)/l;
-  const K2 = (6/Math.PI)*((dR-1)/l-1);
   const sC = Math.min(s, h0_eff * 0.999);
-  return Math.max(0, 4*E*Math.pow(t,4)/((1-nu*nu)*De*De) *
-    (K1*(h0_eff - sC/2)*(sC/t) + K2*Math.pow(sC/t,2)));
+  
+  // 導入 DIN 2092 磨平變薄與傳力點位移綜合修正因子
+  let t_eff = t;
+  let K4 = 1.0;
+  if (d > 0 && t > 0) {
+    t_eff = t - d * 0.75; 
+    K4 = 1.0 + 1.2 * (d / t); 
+  }
+  t_eff = Math.max(t_eff, 0.1);
+
+  return Math.max(0, (4 * E * Math.pow(t_eff, 4)) / ((1 - nu * nu) * De * De * K1) * ((h0_eff - sC / 2) * (sC / t_eff) + K2 * Math.pow(sC / t_eff, 2)) * K4);
 }
 
+// ── 修正：內緣應力公式（導入磨平修正） ──
 function calcStress(De, Di, t, d, h0, s, E, nu) {
+  const dR = De / Di;
+  const l = Math.log(dR);
+  
+  const K1 = (1 / Math.PI) * Math.pow((dR - 1) / dR, 2) / l;
+  const K2 = (6 / Math.PI) * ((dR - 1) / l - 1);
+  const K3 = (1 / Math.PI) * ((dR - 1) / l - 1);
+  
   const h0_eff = Math.max(h0, 0.001);
-  const dR = De/Di, l = Math.log(dR);
-  const K1 = (1/Math.PI)*Math.pow((dR-1)/dR,2)/l;
-  const K2 = (6/Math.PI)*((dR-1)/l-1);
-  const K3 = (1/Math.PI)*((dR-1)/l-1);
-  return Math.abs(4*E*t*t/((1-nu*nu)*De*De*K1) * (K2*(h0_eff-s/2)+K3*t));
+  const sC = Math.min(s, h0_eff * 0.999);
+  
+  let t_eff = t;
+  if (d > 0 && t > 0) {
+    t_eff = Math.max(t - d * 0.75, 0.1);
+  }
+
+  return Math.abs((4 * E * t_eff) / ((1 - nu * nu) * De * De * K1) * (K2 * (h0_eff - sC / 2) + K3 * t_eff));
 }
 
+// ── 修正：受壓後最終內徑動態計算公式（依據 DIN 剛體旋轉投影模型） ──
 function calcDiF(De, Di, h0, s, nu) {
-  // 1. 計算基本幾何參數（與主程式核心公式一致）
   const h0_eff = Math.max(h0, 0.001); 
   const sC = Math.min(s, h0_eff * 0.999);
   
-  // 2. 依據 DIN 標準幾何旋轉模型（剛體旋轉投影）
-  // 碟簧受壓時，截面繞中性半徑旋轉，其內徑接觸點的水平投影縮小量
-  // 壓平狀態（s = h0_eff）下的理論縮小量大約為： (h0_eff^2) / (De - Di)
-  // 隨撓度 s 的動態變量公式如下：
+  // 完全壓扁時(sC=h0)，內徑縮小量正確達到最大幾何極限
   const deltaDi = (sC * (2 * h0_eff - sC)) / (De - Di);
   
-  // 3. 回傳計算後的最終內徑（並保留原本的 0.8 倍下限防呆機制）
   return Math.max(Di - deltaDi, Di * 0.8);
 }
 
-// ── Cross-section canvas ──
-//
-// 磨平高度 d：在外緣底角和內緣頂角各磨去垂直高度 d（水平線）
-//   外緣底角：底面往上 d 處開始水平截平
-//   內緣頂角：頂面往下 d 處開始水平截平
-//   有效高度 = h₀ + t − 2d
-//
+// ── Cross-section canvas（優化：Retina 防模糊、精確磨平對照標註） ──
 function drawDiagram(De, Di, t, d, h0, sVal) {
   const cv  = document.getElementById('dimCanvas');
   const dpr = window.devicePixelRatio || 1;
   const displayW = cv.offsetWidth;
   const displayH = 420;
+  
   cv.width  = displayW * dpr;
   cv.height = displayH * dpr;
   cv.style.height = displayH + 'px';
+  
   const ctx = cv.getContext('2d');
   ctx.scale(dpr, dpr);
   const W = displayW, H = displayH;
@@ -401,211 +402,167 @@ function drawDiagram(De, Di, t, d, h0, sVal) {
   const rOut = De/2*scale, rIn = Di/2*scale;
   const tS  = t * scale;
   const h0S = h0 * scale;
-  const dS  = d * scale;   // 磨平高度（像素）
+  const dS  = d * scale;
 
-  // ── helpers ──
   function arrowV(x, y1, y2, col) {
-    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9;
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1.0;
     ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke();
     [[y1,1],[y2,-1]].forEach(([y,dir])=>{
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+dir*8); ctx.lineTo(x+3,y+dir*8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+dir*7); ctx.lineTo(x+3,y+dir*7); ctx.closePath(); ctx.fill();
     });
   }
   function arrowH(x1, x2, y, col) {
-    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=0.9;
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1.0;
     ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke();
     [[x1,1],[x2,-1]].forEach(([x,dir])=>{
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dir*8,y-3); ctx.lineTo(x+dir*8,y+3); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dir*7,y-3); ctx.lineTo(x+dir*7,y+3); ctx.closePath(); ctx.fill();
     });
   }
   function dashV(x, y1, y2, col) {
-    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=0.5; ctx.setLineDash([4,3]);
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=0.6; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke(); ctx.restore();
   }
   function dashH(x1, x2, y, col, pat) {
-    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=pat?1:0.5; ctx.setLineDash(pat||[4,3]);
+    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=pat?1.2:0.6; ctx.setLineDash(pat||[4,4]);
     ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke(); ctx.restore();
   }
   function lbl(str, x, y, align, col, weight) {
     ctx.fillStyle=col||cText;
-    ctx.font=(weight||'400')+' 11px -apple-system,sans-serif';
+    ctx.font=(weight||'400')+' 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     ctx.textAlign=align||'center';
     ctx.fillText(str,x,y);
   }
 
-  // 畫彈片截面，含磨平水平線
-  // 磨平在：外緣底角（底部往上 d）、內緣頂角（頂部往下 d）
   function drawSpring(baseCX, baseY, h0draw, fillColor, showFlat) {
     const hS  = h0draw * scale;
-    const dS_ = Math.min(dS, hS * 0.48, tS * 0.48);
+    const dS_ = Math.min(dS, hS * 0.45, tS * 0.45);
 
-    // 四個名義頂點
-    const p1x = baseCX+rOut, p1y = baseY;            // 外緣底（名義）
-    const p2x = baseCX+rIn,  p2y = baseY - hS;       // 內緣底
-    const p3x = baseCX+rIn,  p3y = baseY - hS - tS;  // 內緣頂（名義）
-    const p4x = baseCX+rOut, p4y = baseY - tS;        // 外緣頂
+    const p1x = baseCX+rOut, p1y = baseY;
+    const p2x = baseCX+rIn,  p2y = baseY - hS;
+    const p3x = baseCX+rIn,  p3y = baseY - hS - tS;
+    const p4x = baseCX+rOut, p4y = baseY - tS;
 
-    // 磨平後的實際接觸點 y 座標（水平截平）
-    const p1_flat_y = p1y - dS_;   // 外緣底角：往上磨 d → 接觸點在此
-    const p3_flat_y = p3y + dS_;   // 內緣頂角：往下磨 d → 接觸點在此
+    const p1_flat_y = p1y - dS_;
+    const p3_flat_y = p3y + dS_;
 
-    // 畫主體：右半，含磨平水平段
+    ctx.fillStyle=fillColor; ctx.strokeStyle=cStroke; ctx.lineWidth=1.5;
+
     ctx.beginPath();
-    if (showFlat && dS_ > 0.8) {
-      // 外緣：從外緣頂往下到磨平起點，然後水平，然後斜面到內緣底，內緣底到內緣磨平起點，水平，到內緣頂
-      ctx.moveTo(p4x, p4y);                   // 外緣頂
-      ctx.lineTo(p1x, p1_flat_y);             // 外緣往下，到磨平起點
-      ctx.lineTo(p1x - dS_, p1y);             // 水平磨平段（往內）→ 到外緣底面延伸點
-      ctx.lineTo(p2x + dS_, p2y);             // 斜面到內緣底（靠近內緣）
-      ctx.lineTo(p2x, p2_flat_y_or_bottom());  // 內緣底（無磨平）
-      ctx.lineTo(p3x, p3_flat_y);             // 內緣往上，到磨平起點
-      ctx.lineTo(p3x + dS_, p3y);             // 水平磨平段（往外）
-      ctx.lineTo(p4x, p4y);                   // 外緣頂（閉合）
-    } else {
-      ctx.moveTo(p1x, p1y);
+    if (showFlat && dS_ > 0.5) {
+      ctx.moveTo(p4x, p4y);
+      ctx.lineTo(p1x, p1_flat_y);
+      ctx.lineTo(p1x - dS_, p1y);
+      ctx.lineTo(p2x + dS_, p2y);
       ctx.lineTo(p2x, p2y);
-      ctx.lineTo(p3x, p3y);
-      ctx.lineTo(p4x, p4y);
+      ctx.lineTo(p3x, p3_flat_y);
+      ctx.lineTo(p3x + dS_, p3y);
+    } else {
+      ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y); ctx.lineTo(p3x, p3y); ctx.lineTo(p4x, p4y);
     }
-    ctx.closePath();
+    ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // 左半（鏡像）
     const lp1x=baseCX-rOut, lp2x=baseCX-rIn, lp3x=baseCX-rIn, lp4x=baseCX-rOut;
-    ctx.moveTo(lp4x, p4y);
-    if (showFlat && dS_ > 0.8) {
+    ctx.beginPath();
+    if (showFlat && dS_ > 0.5) {
+      ctx.moveTo(lp4x, p4y);
       ctx.lineTo(lp1x, p1_flat_y);
       ctx.lineTo(lp1x + dS_, p1y);
       ctx.lineTo(lp2x - dS_, p2y);
-      ctx.lineTo(lp2x, p2_flat_y_or_bottom());
+      ctx.lineTo(lp2x, p2y);
       ctx.lineTo(lp3x, p3_flat_y);
       ctx.lineTo(lp3x - dS_, p3y);
-      ctx.lineTo(lp4x, p4y);
     } else {
-      ctx.moveTo(lp1x, p1y);
-      ctx.lineTo(lp2x, p2y);
-      ctx.lineTo(lp3x, p3y);
-      ctx.lineTo(lp4x, p4y);
+      ctx.moveTo(lp1x, p1y); ctx.lineTo(lp2x, p2y); ctx.lineTo(lp3x, p3y); ctx.lineTo(lp4x, p4y);
     }
-    ctx.closePath();
+    ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    ctx.fillStyle=fillColor; ctx.fill();
-    ctx.strokeStyle=cStroke; ctx.lineWidth=1.5; ctx.stroke();
-
-    // 磨平水平線高亮（黃色）
-    if (showFlat && dS_ > 0.8) {
-      ctx.strokeStyle=cGold; ctx.lineWidth=2;
-      // 右側外緣底角水平線
+    if (showFlat && dS_ > 0.5) {
+      ctx.strokeStyle=cGold; ctx.lineWidth=2.0;
       ctx.beginPath(); ctx.moveTo(p1x, p1_flat_y); ctx.lineTo(p1x - dS_, p1y); ctx.stroke();
-      // 右側內緣頂角水平線
       ctx.beginPath(); ctx.moveTo(p3x, p3_flat_y); ctx.lineTo(p3x + dS_, p3y); ctx.stroke();
-      // 左側外緣底角水平線
       ctx.beginPath(); ctx.moveTo(lp1x, p1_flat_y); ctx.lineTo(lp1x + dS_, p1y); ctx.stroke();
-      // 左側內緣頂角水平線
-      ctx.beginPath(); ctx.moveTo(lp3x, p3_flat_y); ctx.lineTo(lp3x - dS_, p3y); ctx.stroke();
-      // 小圓點標記原始角點
-      [[p1x,p1y],[p3x,p3y],[lp1x,p1y],[lp3x,p3y]].forEach(([px,py])=>{
-        ctx.beginPath(); ctx.arc(px,py,2.5,0,2*Math.PI);
-        ctx.fillStyle=cGold; ctx.fill();
-      });
+      ctx.beginPath(); ctx.moveTo(lp3x, p3_flat_y); ctx.lineTo(lp3x - dS_, p3y); stroke();
     }
-
-    function p2_flat_y_or_bottom() { return p2y; }
-    return { p1y, p3y, p1_flat_y, p3_flat_y, dS_ };
+    return { outerBot: p1y, innerBot: p2y, innerTop: p3y, outerTop: p4y, dS_ };
   }
 
   // ── UPPER: free state ──
   const baseY1   = panelH - 30;
-  const outerBot = baseY1;
-  const outerTop = baseY1 - tS;
-  const innerBot = baseY1 - h0S;
-  const innerTop = baseY1 - h0S - tS;
+  const sp1 = drawSpring(cx, baseY1, h0, cFill, dS > 0);
 
-  const sp = drawSpring(cx, baseY1, h0, cFill, dS > 0);
-
-  // h₀ 標注（左側藍色）
   const dxH0 = cx - rOut - 36;
-  dashH(cx-rOut, dxH0+2, outerBot, cBlue);
-  dashH(cx-rIn,  dxH0+2, innerBot, cBlue);
-  arrowV(dxH0, outerBot, innerBot, cBlue);
-  lbl('h₀', dxH0-8, (outerBot+innerBot)/2+4, 'right', cBlue, '500');
+  dashH(cx-rOut, dxH0+2, sp1.outerBot, cBlue);
+  dashH(cx-rIn,  dxH0+2, sp1.innerBot, cBlue);
+  arrowV(dxH0, sp1.outerBot, sp1.innerBot, cBlue);
+  lbl('h₀', dxH0-8, (sp1.outerBot+sp1.innerBot)/2+4, 'right', cBlue, '500');
 
   if (dS > 0.5) {
-    // 有磨平時：右側標 h₀+t−2d（從外緣底角接觸點到內緣頂角接觸點）
-    // 外緣底角接觸點 = outerBot - dS_（磨平水平線位置）
-    // 內緣頂角接觸點 = innerTop + dS_（磨平水平線位置）
-    const dS_ = sp.dS_;
-    const contactBotY = outerBot - dS_;   // 外緣底角磨平後接觸點
-    const contactTopY = innerTop + dS_;   // 內緣頂角磨平後接觸點
+    const contactBotY = sp1.outerBot - sp1.dS_;
+    const contactTopY = sp1.innerTop + sp1.dS_;
 
-    // 黃色虛線延伸標示兩個接觸水平面
-    dashH(cx-rOut-10, cx+rOut+50, contactBotY, cGold, [6,3]);
-    dashH(cx-rIn-10,  cx+rIn+50,  contactTopY, cGold, [6,3]);
+    dashH(cx-rOut-10, cx+rOut+50, contactBotY, cGold, [5,4]);
+    dashH(cx-rIn-10,  cx+rIn+50,  contactTopY, cGold, [5,4]);
 
-    // 有效高度標注（右側黃色）
     const dxEff = cx + rOut + 24;
     dashH(cx+rOut, dxEff-2, contactBotY, cGold);
     dashH(cx+rIn,  dxEff-2, contactTopY, cGold);
     arrowV(dxEff, contactBotY, contactTopY, cGold);
-    const effVal = (h0 + t - 2*d).toFixed(2);
-    lbl('h₀+t−2d='+effVal, dxEff+6, (contactBotY+contactTopY)/2+4, 'left', cGold, '600');
+    lbl('有效高度='+(h0+t-2*d).toFixed(2), dxEff+6, (contactBotY+contactTopY)/2+4, 'left', cGold, '600');
 
-    // t 標注（右側更外，琥珀色）
-    const dxT = cx + rOut + 80;
-    dashH(cx+rOut, dxT-2, outerBot, cAmber);
-    dashH(cx+rOut, dxT-2, outerTop, cAmber);
-    arrowV(dxT, outerBot, outerTop, cAmber);
-    lbl('t='+t.toFixed(1), dxT+6, (outerBot+outerTop)/2+4, 'left', cAmber, '500');
+    const dxT = cx + rOut + 85;
+    dashH(cx+rOut, dxT-2, sp1.outerBot, cAmber);
+    dashH(cx+rOut, dxT-2, sp1.outerTop, cAmber);
+    arrowV(dxT, sp1.outerBot, sp1.outerTop, cAmber);
+    lbl('t='+t.toFixed(2), dxT+6, (sp1.outerBot+sp1.outerTop)/2+4, 'left', cAmber, '500');
   } else {
-    // 無磨平：t 標在右側
     const dxT = cx + rOut + 24;
-    dashH(cx+rOut, dxT-2, outerBot, cAmber);
-    dashH(cx+rOut, dxT-2, outerTop, cAmber);
-    arrowV(dxT, outerBot, outerTop, cAmber);
-    lbl('t = '+t.toFixed(1)+' mm', dxT+8, (outerBot+outerTop)/2+4, 'left', cAmber, '500');
+    dashH(cx+rOut, dxT-2, sp1.outerBot, cAmber);
+    dashH(cx+rOut, dxT-2, sp1.outerTop, cAmber);
+    arrowV(dxT, sp1.outerBot, sp1.outerTop, cAmber);
+    lbl('t = '+t.toFixed(2)+' mm', dxT+8, (sp1.outerBot+sp1.outerTop)/2+4, 'left', cAmber, '500');
   }
 
-  // De & Di
-  const yDe = outerBot+22, yDi = outerBot+38;
-  [cx-rOut,cx+rOut].forEach(x => dashV(x, outerBot, yDe+4, cMuted));
-  [cx-rIn, cx+rIn ].forEach(x => dashV(x, innerBot, yDi+4, cMuted));
+  const yDe = sp1.outerBot+22, yDi = sp1.outerBot+38;
+  [cx-rOut,cx+rOut].forEach(x => dashV(x, sp1.outerBot, yDe+4, cMuted));
+  [cx-rIn, cx+rIn ].forEach(x => dashV(x, sp1.innerBot, yDi+4, cMuted));
   arrowH(cx-rOut, cx+rOut, yDe, cBlue);
   lbl('De = '+De.toFixed(1)+' mm', cx, yDe+13, 'center', cBlue, '500');
   arrowH(cx-rIn, cx+rIn, yDi, cDash);
   lbl('Di = '+Di.toFixed(1)+' mm', cx, yDi+13, 'center', cDash, '500');
 
-  lbl('自由狀態', padL, 15, 'left', cText, '600');
+  lbl('自由狀態 (Free State)', padL, 18, 'left', cText, '600');
 
   // ── LOWER: pressed state ──
   const baseY2 = H - 50;
-  const sC = Math.min(sVal, Math.max(h0 - 2*d, 0.01) * 0.98);
+  const h0_eff = Math.max(h0, 0.001);
+  const sC = Math.min(sVal, h0_eff * 0.999);
   const h0P  = h0 - sC;
-  const h0PS = h0P * scale;
 
-  drawSpring(cx, baseY2, h0P, cFillP, dS > 0);
+  const sp2 = drawSpring(cx, baseY2, h0P, cFillP, dS > 0);
 
-  // 虛線基準 + s 標注
   const freeInnerTop_2  = baseY2 - h0S  - tS;
-  const pressInnerTop_2 = baseY2 - h0PS - tS;
-  dashH(padL-10, W-padR+10, freeInnerTop_2, cDash, [9,5]);
+  const pressInnerTop_2 = baseY2 - (h0P * scale) - tS;
+  dashH(padL-10, W-padR+10, freeInnerTop_2, cDash, [8,4]);
 
   const sX = cx + rIn + 52;
   ctx.save(); ctx.strokeStyle=cRed; ctx.lineWidth=0.5; ctx.setLineDash([3,3]);
-  ctx.beginPath(); ctx.moveTo(cx+rIn, pressInnerTop_2); ctx.lineTo(sX-2, pressInnerTop_2); ctx.stroke();
-  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(cx+rIn, pressInnerTop_2); ctx.lineTo(sX-2, pressInnerTop_2); ctx.stroke(); ctx.restore();
   arrowV(sX, freeInnerTop_2, pressInnerTop_2, cRed);
-  lbl('s = '+sC.toFixed(1)+' mm', sX+8, (freeInnerTop_2+pressInnerTop_2)/2+4, 'left', cRed, '500');
+  lbl('s = '+sC.toFixed(2)+' mm', sX+8, (freeInnerTop_2+pressInnerTop_2)/2+4, 'left', cRed, '500');
 
-  lbl('受壓狀態', padL, panelH+15, 'left', cText, '600');
+  lbl('受壓狀態 (Pressed State)', padL, panelH+18, 'left', cText, '600');
 }
 
 // ── Main update ──
 function update() {
   const {De, Di, t, d, h0, s, E, nu} = getVals();
-  const h0_eff = Math.max(h0, 0.001); // 修正：完全壓平的最大可壓位移上限就是自由錐高 h0 
+  
+  // 修正：主程序極限核心限制完全以完整的自由錐高 h0 為依歸
+  const h0_eff = Math.max(h0, 0.001);
   const sC = Math.min(s, h0_eff * 0.999);
 
   const P   = calcP(De, Di, t, d, h0, sC, E, nu);
-  const P2  = calcP(De, Di, t, d, h0, Math.min(sC + 0.01, h0_eff * 0.99), E, nu);
+  const P2  = calcP(De, Di, t, d, h0, Math.min(sC + 0.01, h0_eff * 0.999), E, nu);
   const sig = calcStress(De, Di, t, d, h0, sC, E, nu);
   const ht  = h0_eff / t;
   const DiF = calcDiF(De, Di, h0_eff, sC, nu);
@@ -634,10 +591,10 @@ function update() {
   const matStr = document.getElementById('mat').value;
   const isAl   = matStr.startsWith('71') || matStr.startsWith('72');
   const warns  = [];
-  if (s >= h0_eff)       warns.push('⚠ 撓度 s 超過有效錐高（h₀−2d），彈片已壓平，請減少 s。');
+  if (s >= h0_eff)       warns.push('⚠ 撓度 s 超過自由錐高（h₀），彈片已完全壓平。');
   if (Di >= De)          warns.push('⚠ 內徑不能大於外徑。');
-  if (2*d >= h0)         warns.push('⚠ 磨平高度 d 過大（2d ≥ h₀），有效錐高已消失，請減小 d 或增大 h₀。');
-  if (ht > sq2)          warns.push('⚠ (h₀−2d)/t > √2，可能產生 snap-through 負剛度行為，需謹慎設計。');
+  if (2*d >= h0)         warns.push('⚠ 磨平高度 d 過大（2d ≥ h₀），請減小 d 或增大 h₀。');
+  if (ht > sq2)          warns.push('⚠ h₀/t > √2，可能產生 snap-through 負剛度行為，需謹慎設計。');
   if (!isAl && sig>1400) warns.push('⚠ 內緣應力 > 1400 MPa，超過一般彈簧鋼許用應力，請調整尺寸。');
   if (isAl  && sig>450)  warns.push('⚠ 鋁合金應力偏高（AL7075 許用約 400–500 MPa），請確認是否在材料極限內。');
   if (t < 0.5)           warns.push('⚠ 厚度 < 0.5 mm，屬極薄片，製造公差與疲勞壽命需特別注意。');
@@ -650,16 +607,16 @@ function update() {
 }
 
 function updateChart(De, Di, t, d, h0, E, nu, sC) {
-  const h0_eff = Math.max(h0 - 2*d, 0.001);
+  const h0_eff = Math.max(h0, 0.001);
   const labels = [], data = [];
   for (let i = 0; i <= 40; i++) {
-    const sv = h0_eff * (i/40) * 0.99;
+    const sv = h0_eff * (i/40) * 0.999;
     labels.push(sv.toFixed(2));
     data.push(parseFloat(calcP(De,Di,t,d,h0,sv,E,nu).toFixed(2)));
   }
   const cp   = calcP(De, Di, t, d, h0, sC, E, nu);
   const dots = Array(41).fill(null).map((_,i) => {
-    const sv = h0_eff*(i/40)*0.99;
+    const sv = h0_eff*(i/40)*0.999;
     return Math.abs(sv-sC) < h0_eff/40*.6 ? parseFloat(cp.toFixed(2)) : null;
   });
 
