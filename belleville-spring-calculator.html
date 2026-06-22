@@ -165,7 +165,7 @@ footer {
 
 <header>
   <h1>Belleville Spring 碟形彈簧計算器</h1>
-  <p>Almen-Laszlo 公式　｜　即時計算負載、應力、彈簧率</p>
+  <p>Almen-Laszlo 公式　｜　即時計算負載、應力、彈簧率　｜　版本 V11</p>
 </header>
 
 <div class="container">
@@ -581,7 +581,7 @@ function update() {
   const matStr = document.getElementById('mat').value;
   const isAl   = matStr.startsWith('71') || matStr.startsWith('72');
   const warns  = [];
-  if (s >= h0_eff)       warns.push('⚠ 撓度 s 超過自由錐高（h₀），彈片已完全壓平。');
+  if (s >= h0)           warns.push('⚠ 撓度 s 超過自由錐高（h₀），彈片已完全壓平。');
   if (Di >= De)          warns.push('⚠ 內徑不能大於外徑。');
   if (2*d >= h0)         warns.push('⚠ 磨平高度 d 過大（2d ≥ h₀），請減小 d 或增大 h₀。');
   if (ht > sq2)          warns.push('⚠ h₀/t > √2，可能產生 snap-through 負剛度行為，需謹慎設計。');
@@ -598,7 +598,6 @@ function update() {
 
 function updateChart(De, Di, t, d, h0, E, nu, sC) {
   // 圖表 x 軸範圍用 h0（物理壓扁極限）
-  const h0_eff = Math.max(h0 - 2*d, 0.001);
   const labels = [], data = [];
   for (let i = 0; i <= 40; i++) {
     const sv = h0 * (i/40) * 0.999;   // x 軸上限 = h0
