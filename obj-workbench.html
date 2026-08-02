@@ -70,6 +70,14 @@
   }
   #measCard.on{display:block}
   #measCard .chk{font-size:12px}
+  #drillCard{
+    position:absolute;right:12px;bottom:60px;z-index:6;display:none;width:196px;
+    background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+    box-shadow:0 3px 14px rgba(29,35,40,.12);
+  }
+  #drillCard.on{display:block}
+  #drillCard .chk{font-size:12px}
+  .drow{display:grid;grid-template-columns:1fr 76px;align-items:center;gap:8px;margin-bottom:7px;font-size:12px}
   select{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
     font-family:var(--mono);font-size:11.5px;padding:6px 7px;border-radius:3px;
@@ -190,6 +198,11 @@
     border-radius:4px;padding:9px 10px;cursor:pointer;font-size:12.5px;
   }
   .file-btn span:hover{background:#3a8bcb}
+  .file-btn span.ghost{
+    background:var(--panel-2);color:var(--text);font-weight:400;
+    border:1px solid var(--line);padding:8px 10px;
+  }
+  .file-btn span.ghost:hover{background:#e7eaee;border-color:#b6bec7}
 
   #toast{
     position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
@@ -233,7 +246,17 @@
         </button>
       </div>
 
-      <div id="tools" role="toolbar" aria-label="顯示工具">
+    <div id="drillCard">
+      <div class="drow"><span id="drillDiaLbl">直徑</span><input type="number" id="drillDia" step="0.1" value="5"></div>
+      <div class="drow"><span id="drillDepLbl">深度</span><input type="number" id="drillDep" step="0.1" value="10"></div>
+      <label class="chk" style="margin:2px 0 8px"><input type="checkbox" id="drillSnapAxis"><span id="drillSnapAxisLbl">對齊最近 X/Y/Z 軸</span></label>
+      <div class="stats" id="drillOut" style="margin-bottom:8px"></div>
+      <button id="drillGo" class="primary">壓出凹陷</button>
+      <button id="drillClr" style="margin-top:6px">清除選點</button>
+      <p class="hint">移動既有頂點做出凹陷，不新增或刪除任何點與面，所以模型的封閉性與貼圖都不受影響。因為不新增幾何，做不出真正貫穿的孔洞；凹陷邊緣的形狀會受附近頂點疏密影響，不保證是正圓；深度若遠大於附近頂點間距，可能讓三角形自相交。</p>
+    </div>
+
+    <div id="tools" role="toolbar" aria-label="顯示工具">
       <button class="tool" id="tWire" aria-pressed="false" title="線框疊加" aria-label="線框疊加">
         <svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
       </button>
@@ -242,6 +265,9 @@
       </button>
       <button class="tool" id="tMeas" aria-pressed="false" title="量測距離" aria-label="量測距離">
         <svg viewBox="0 0 24 24"><path d="M2 14 14 2l8 8L10 22z"/><path d="M6 10l2 2M9 7l2 2M12 4l2 2"/></svg>
+      </button>
+      <button class="tool" id="tDrill" aria-pressed="false" title="壓出凹陷" aria-label="壓出凹陷">
+        <svg viewBox="0 0 24 24"><path d="M9 3h7l2 4h-9z"/><path d="M9 7v4h6V7"/><path d="M12 11v6"/><path d="m12 21 2-4h-4z"/></svg>
       </button>
       <button class="tool" id="tFit" title="重新對正視角" aria-label="重新對正視角">
         <svg viewBox="0 0 24 24"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>
@@ -285,8 +311,11 @@
           </select>
         </div>
         <button id="uApply">套用單位換算</button>
-        <button id="yzSwap" style="margin-top:7px">Y／Z 軸互換</button>
-        <p class="hint">OBJ 檔本身不記錄單位。先在左邊指定檔案原本的單位，尺寸與量測值就會帶上單位；要改成別的單位再按套用換算，會直接改寫頂點座標。<br>Y／Z 互換用於 Z 軸朝上的 CAD 與 Y 軸朝上的檢視慣例之間轉換，再按一次會轉回來。</p>
+        <div class="btns two" style="margin-top:7px">
+          <label class="file-btn"><input type="file" id="texFile" accept=".mtl,image/*" multiple><span class="ghost">載入貼圖</span></label>
+          <button id="yzSwap">Y／Z 軸互換</button>
+        </div>
+        <p class="hint">OBJ 檔本身不記錄單位。先在左邊指定檔案原本的單位，尺寸與量測值就會帶上單位；要改成別的單位再按套用換算，會直接改寫頂點座標。<br>載入貼圖請一併選取 .mtl 與圖檔，僅供檢視；一旦執行裁切或補洞就會自動卸除（壓凹陷不影響貼圖）。<br>Y／Z 互換用於 Z 軸朝上的 CAD 與 Y 軸朝上的檢視慣例之間轉換，再按一次會轉回來。</p>
       </section>
 
       <section>
@@ -346,6 +375,10 @@
 
 /* ================= state ================= */
 var MESH = null;                       // {verts:[[x,y,z]..], tris:[[a,b,c]..]}
+var RAW = null;                        // pre-weld parse, kept for UV/texture display
+var NEWFACE = null;                    // per-triangle: true if this face has no original UV
+var texObj = null;
+var lastTexture = null;   // {matToFile, images} of the most recently applied texture set, or null
 var TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
 var CROP = {min:[-1,-1,-1], max:[1,1,1]};
 var RANGE = {min:[-1,-1,-1], max:[1,1,1]};   // slider extents
@@ -493,23 +526,40 @@ window.addEventListener("resize", resize);
 
 /* ================= OBJ parsing ================= */
 function parseOBJ(text){
-  var verts = [], tris = [], lines = text.split(/\r?\n/);
+  var verts = [], uvs = [], tris = [], triUV = [], triMat = [];
+  var cur = null, mtllib = null, lines = text.split(/\r?\n/);
   for(var i=0;i<lines.length;i++){
     var ln = lines[i];
-    if(ln.charCodeAt(0) === 118 && ln.charCodeAt(1) === 32){          // "v "
-      var p = ln.split(/\s+/);
-      verts.push([parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3])]);
-    } else if(ln.charCodeAt(0) === 102 && ln.charCodeAt(1) === 32){   // "f "
-      var t = ln.trim().split(/\s+/), idx = [];
+    if(!ln) continue;
+    var c0 = ln.charCodeAt(0);
+    if(c0 === 118){                                                    // v / vt
+      var c1 = ln.charCodeAt(1);
+      if(c1 === 32){
+        var p = ln.split(/\s+/);
+        verts.push([parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3])]);
+      } else if(c1 === 116){
+        var q = ln.trim().split(/\s+/);
+        uvs.push([parseFloat(q[1]), parseFloat(q[2])]);
+      }
+    } else if(c0 === 102 && ln.charCodeAt(1) === 32){                  // f
+      var t = ln.trim().split(/\s+/), idx = [], uvi = [];
       for(var j=1;j<t.length;j++){
-        var v = parseInt(t[j].split("/")[0], 10);
+        var seg = t[j].split("/");
+        var v = parseInt(seg[0], 10);
         if(isNaN(v)) continue;
         idx.push(v > 0 ? v-1 : verts.length + v);
+        var u = (seg.length > 1 && seg[1] !== "") ? parseInt(seg[1], 10) : NaN;
+        uvi.push(isNaN(u) ? -1 : (u > 0 ? u-1 : uvs.length + u));
       }
-      for(var k=1;k+1<idx.length;k++) tris.push([idx[0], idx[k], idx[k+1]]);
-    }
+      for(var k=1;k+1<idx.length;k++){
+        tris.push([idx[0], idx[k], idx[k+1]]);
+        triUV.push([uvi[0], uvi[k], uvi[k+1]]);
+        triMat.push(cur);
+      }
+    } else if(ln.indexOf("usemtl") === 0){ cur = ln.slice(6).trim(); }
+    else if(ln.indexOf("mtllib") === 0){ mtllib = ln.slice(6).trim(); }
   }
-  return {verts:verts, tris:tris};
+  return {verts:verts, tris:tris, uvs:uvs, triUV:triUV, triMat:triMat, mtllib:mtllib};
 }
 
 function objText(M){
@@ -556,7 +606,10 @@ function bbox(verts){
   return {min:mn, max:mx};
 }
 
-function weld(M, eps){
+// extras, if given, is an array of parallel per-triangle arrays (e.g. [isNewArr,
+// originArr]) — always a list, even for one, so there is no ambiguity between
+// "one array" and "one array of arrays" to detect.
+function weld(M, eps, extras){
   var map = new Map(), nv = [], remap = new Array(M.verts.length);
   for(var i=0;i<M.verts.length;i++){
     var v = M.verts[i];
@@ -565,23 +618,28 @@ function weld(M, eps){
     if(id === undefined){ id = nv.length; nv.push([v[0],v[1],v[2]]); map.set(kk, id); }
     remap[i] = id;
   }
-  var nt = [];
+  var nt = [], ne = extras ? extras.map(function(){ return []; }) : null;
   for(var j=0;j<M.tris.length;j++){
     var t = M.tris[j], a = remap[t[0]], b = remap[t[1]], c = remap[t[2]];
     if(a===undefined||b===undefined||c===undefined) continue;
-    if(a!==b && b!==c && a!==c) nt.push([a,b,c]);
+    if(a!==b && b!==c && a!==c){
+      nt.push([a,b,c]);
+      if(extras) extras.forEach(function(arr, k){ ne[k].push(arr[j]); });
+    }
   }
-  return {verts:nv, tris:nt};
+  return extras ? {verts:nv, tris:nt, extra:ne} : {verts:nv, tris:nt};
 }
 
-function dropUnused(M){
+function dropUnused(M, extras){
   var used = new Int32Array(M.verts.length).fill(-1), nv = [];
   for(var i=0;i<M.tris.length;i++) for(var k=0;k<3;k++){
     var id = M.tris[i][k];
     if(used[id] === -1){ used[id] = nv.length; nv.push(M.verts[id]); }
   }
   var nt = M.tris.map(function(t){ return [used[t[0]], used[t[1]], used[t[2]]]; });
-  return {verts:nv, tris:nt};
+  // dropUnused only remaps vertex ids — it keeps every triangle, so any
+  // per-triangle array passed in survives untouched and unreordered.
+  return extras !== undefined ? {verts:nv, tris:nt, extra:extras} : {verts:nv, tris:nt};
 }
 
 // Sutherland–Hodgman clip of every triangle against one axis-aligned half-space
@@ -611,13 +669,43 @@ function clipPlane(M, axis, value, keepBelow){
   return {verts:V, tris:out};
 }
 
-function cropMesh(M, mn, mx){
-  var R = M;
-  for(var a=0;a<3;a++){
-    R = clipPlane(R, a, mx[a], true);
-    R = clipPlane(R, a, mn[a], false);
+function clipPlaneTagged(M, origin, axis, value, keepBelow){
+  var V = M.verts.slice(), out = [], outOrigin = [], cache = new Map();
+  function d(v){ return keepBelow ? value - v[axis] : v[axis] - value; }
+  function cut(i, j){
+    var kk = i<j ? i+"_"+j : j+"_"+i, got = cache.get(kk);
+    if(got !== undefined) return got;
+    var a = V[i], b = V[j], da = d(a), db = d(b), t = da/(da-db);
+    var p = [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+    p[axis] = value;
+    var id = V.length; V.push(p); cache.set(kk, id); return id;
   }
-  return dropUnused(weld(R, DIAG*1e-6));
+  for(var n=0;n<M.tris.length;n++){
+    var tri = M.tris[n], poly = [], dd = [d(V[tri[0]]), d(V[tri[1]]), d(V[tri[2]])];
+    var whole = (dd[0] >= 0 && dd[1] >= 0 && dd[2] >= 0);
+    for(var i=0;i<3;i++){
+      var j = (i+1)%3;
+      if(dd[i] >= 0) poly.push(tri[i]);
+      if((dd[i] > 0 && dd[j] < 0) || (dd[i] < 0 && dd[j] > 0)) poly.push(cut(tri[i], tri[j]));
+    }
+    for(var f=1;f+1<poly.length;f++){
+      var a=poly[0], b=poly[f], c=poly[f+1];
+      if(a!==b && b!==c && a!==c){ out.push([a,b,c]); outOrigin.push(whole ? origin[n] : null); }
+    }
+  }
+  return {verts:V, tris:out, origin:outOrigin};
+}
+
+function cropMesh(M, mn, mx){
+  var R = M, origin = M.tris.map(function(_, i){ return i; });
+  for(var a=0;a<3;a++){
+    var r1 = clipPlaneTagged(R, origin, a, mx[a], true); R = r1; origin = r1.origin;
+    var r2 = clipPlaneTagged(R, origin, a, mn[a], false); R = r2; origin = r2.origin;
+  }
+  var isNew = origin.map(function(o){ return o === null; });
+  var w1 = weld(R, DIAG*1e-6, [isNew, origin]);
+  var w2 = dropUnused(w1, w1.extra);
+  return {mesh:{verts:w2.verts, tris:w2.tris}, newFace:w2.extra[0], keptOrigin:w2.extra[1]};
 }
 
 // directed boundary edges -> loops
@@ -684,8 +772,9 @@ function topology(M){
   return {openEdges:open, nonManifold:nonman, volume:vol, closed:(open.length===0 && nonman===0)};
 }
 
-function fillHoles(M){
+function fillHoles(M, newFaceIn){
   var R = {verts:M.verts.map(function(v){return v.slice();}), tris:M.tris.map(function(t){return t.slice();})};
+  var newFace = newFaceIn ? newFaceIn.slice() : null;
   var info = boundaryLoops(R), added = 0;
   for(var i=0;i<info.loops.length;i++){
     var L = info.loops[i];
@@ -697,13 +786,109 @@ function fillHoles(M){
     for(var k=0;k<L.length;k++){
       var a = L[k], b = L[(k+1)%L.length];
       R.tris.push([b, a, ci]); added++;
+      if(newFace) newFace.push(true);
     }
   }
-  return {mesh:R, loops:info.loops.length, faces:added};
+  return {mesh:R, loops:info.loops.length, faces:added, newFace:newFace};
+}
+
+/* ================= drilling ================= */
+// A blind indentation made by moving EXISTING vertices toward the surface
+// instead of cutting new geometry. No vertex or face is added or removed, so
+// topology (and therefore closure and UV mapping) is provably unaffected —
+// this sidesteps the T-junction/UV-loss problems the cylinder-boolean approach
+// kept running into. The trade-offs are structural, not implementation bugs:
+// a through-hole is impossible (the surface stays one continuous sheet no
+// matter how far vertices move), and the rim shape follows whatever vertices
+// already exist nearby rather than being a clean circle — on a sparse mesh the
+// indent can look faceted, and if the model's local vertex density is coarse
+// relative to the requested depth, neighbouring triangles can fold on themselves.
+function dentVertex(p, C, A, radius, depth){
+  var wx = p[0]-C.x, wy = p[1]-C.y, wz = p[2]-C.z;
+  var h = wx*A.x + wy*A.y + wz*A.z;
+  var rx = wx-A.x*h, ry = wy-A.y*h, rz = wz-A.z*h;
+  var r = Math.sqrt(rx*rx+ry*ry+rz*rz);
+  if(r >= radius) return p;
+  // smooth cosine bowl: full depth at the centre, tapering to zero exactly at
+  // the rim so the indent blends into the untouched surrounding surface
+  var k = (1 + Math.cos(Math.PI * (r/radius))) / 2;
+  var push = depth * k;
+  return [p[0] + A.x*push, p[1] + A.y*push, p[2] + A.z*push];
+}
+
+function dentMesh(M, C, A, radius, depth){
+  var moved = 0;
+  var verts = M.verts.map(function(v){
+    var nv = dentVertex(v, C, A, radius, depth);
+    if(nv !== v) moved++;
+    return nv;
+  });
+  if(!moved) return {ok:false, why:"這個範圍內沒有頂點可以移動，換個位置或加大直徑試試"};
+  return {ok:true, mesh:{verts:verts, tris:M.tris.map(function(t){ return t.slice(); })}, moved:moved};
 }
 
 /* ================= view sync ================= */
+// RAW mirrors MESH but additionally carries per-triangle UVs, so texturing can
+// work face-by-face instead of needing the whole mesh untouched.
+function mapRaw(fn){
+  if(RAW) RAW = {
+    verts: RAW.verts.map(fn), tris: RAW.tris, uvs: RAW.uvs,
+    triUV: RAW.triUV, triMat: RAW.triMat, mtllib: RAW.mtllib
+  };
+}
+function invalidateRaw(){ RAW = null; }
+
+// After a crop/fill/drill, MESH has new indexing and some faces have no UV
+// origin (NEWFACE[i] === true). Rebuild RAW directly from MESH: faces that trace
+// back to a prior RAW face keep its UVs, new faces carry no UV (uvi = -1) and get
+// a placeholder colour at texture time instead of stretched/undefined UVs.
+function rebuildRawFromMesh(prevRaw, mesh, newFace, keptOrigin){
+  if(!prevRaw){ RAW = null; return; }
+  var tris = mesh.tris.map(function(t){ return t.slice(); });
+  // keptOrigin may be shorter than tris (e.g. cap faces appended after crop by
+  // fillHoles) — anything past its length, or itself null, has no UV origin.
+  function origin(i){
+    if(newFace && newFace[i]) return null;
+    if(!keptOrigin || i >= keptOrigin.length) return null;
+    return keptOrigin[i];
+  }
+  var triUV = tris.map(function(t, i){
+    var o = origin(i);
+    return (o !== null && o !== undefined && prevRaw.triUV[o]) ? prevRaw.triUV[o].slice() : [-1, -1, -1];
+  });
+  var triMat = tris.map(function(t, i){
+    var o = origin(i);
+    return (o !== null && o !== undefined) ? prevRaw.triMat[o] : null;
+  });
+  RAW = {
+    verts: mesh.verts.map(function(v){ return v.slice(); }),
+    tris: tris, uvs: prevRaw.uvs, triUV: triUV, triMat: triMat, mtllib: prevRaw.mtllib
+  };
+}
+
+function dropTexture(){
+  if(!texObj) return;
+  root.remove(texObj);
+  texObj.geometry.dispose();
+  (Array.isArray(texObj.material) ? texObj.material : [texObj.material]).forEach(function(m){
+    if(m.map) m.map.dispose();
+    m.dispose();
+  });
+  texObj = null;
+  if(meshObj) meshObj.visible = true;
+}
+
+// buildView() always drops the textured overlay, since it rebuilds meshObj from
+// scratch. If a texture was active before a crop/fill/drill, silently put it
+// back — the operation now preserves per-face UVs for untouched geometry, so
+// this just needs to re-run the same material build, not re-ask for files.
+function reapplyTextureIfActive(){
+  if(!lastTexture) return;
+  applyTextures(lastTexture.matToFile, lastTexture.images, true);
+}
+
 function buildView(){
+  dropTexture();
   if(meshObj){ root.remove(meshObj); meshObj.geometry.dispose(); meshObj = null; }
   if(wireObj){ root.remove(wireObj); wireObj.geometry.dispose(); wireObj = null; }
   if(!MESH) return;
@@ -924,7 +1109,21 @@ function loadText(text, name){
   var B = bbox(raw.verts);
   DIAG = Math.hypot(B.max[0]-B.min[0], B.max[1]-B.min[1], B.max[2]-B.min[2]) || 1;
   var before = raw.verts.length;
-  MESH = dropUnused(weld(raw, DIAG*1e-6));
+  var w1 = weld(raw, DIAG*1e-6, [raw.tris.map(function(_, i){ return i; })]);
+  var w2 = dropUnused(w1, w1.extra);
+  MESH = {verts:w2.verts, tris:w2.tris};
+  NEWFACE = MESH.tris.map(function(){ return false; });
+  // rebuild RAW so RAW.tris lines up 1:1 with MESH.tris — any triangle weld
+  // dropped as degenerate is dropped from both at once
+  var origin = w2.extra[0];
+  RAW = {
+    verts: raw.verts.map(function(v){ return v.slice(); }),
+    tris: origin.map(function(oi){ return raw.tris[oi]; }),
+    uvs: raw.uvs,
+    triUV: origin.map(function(oi){ return raw.triUV[oi]; }),
+    triMat: origin.map(function(oi){ return raw.triMat[oi]; }),
+    mtllib: raw.mtllib
+  };
   fileName = name;
   document.getElementById("fname").textContent = name;
   document.getElementById("empty").classList.add("hide");
@@ -933,7 +1132,12 @@ function loadText(text, name){
   rowsRot.forEach(function(r){ r.set(0); });
   rowsScl.forEach(function(r){ r.set(1); });
   buildView(); fitCamera(); resetCropToModel(); invalidate(); clearMeasure();
-  UNDO = []; syncUndoBtn(); yzFlipped = false; updateHud();
+  UNDO = []; syncUndoBtn(); yzFlipped = false;
+  dropTexture(); lastTexture = null;
+  document.getElementById("drillDia").value = round(DIAG*0.04);
+  document.getElementById("drillDep").value = round(DIAG*0.1);
+  if(typeof clearDrill === "function") clearDrill();
+  updateHud();
   var merged = before - MESH.verts.length;
   toast("已載入 " + MESH.tris.length.toLocaleString() + " 個三角面" + (merged>0 ? "（合併了 "+merged+" 個重複頂點）" : ""));
 }
@@ -965,12 +1169,15 @@ document.getElementById("file").addEventListener("change", function(e){
 document.getElementById("bakeTr").addEventListener("click", function(){
   if(!MESH) return;
   snapshot("套用變換");
+  root.updateMatrixWorld(true);
+  var bm = root.matrixWorld, bv = new THREE.Vector3();
+  mapRaw(function(p){ bv.set(p[0],p[1],p[2]).applyMatrix4(bm); return [bv.x, bv.y, bv.z]; });
   MESH = bakedMesh();
   TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
   rowsPos.forEach(function(r){ r.set(0); });
   rowsRot.forEach(function(r){ r.set(0); });
   rowsScl.forEach(function(r){ r.set(1); });
-  buildView(); invalidate(); updateHud();
+  buildView(); reapplyTextureIfActive(); invalidate(); updateHud();
   toast("變換已寫入頂點座標");
 });
 
@@ -988,19 +1195,20 @@ document.getElementById("resetCrop").addEventListener("click", resetCropToModel)
 document.getElementById("doCrop").addEventListener("click", function(){
   if(!MESH) return;
   var W = bakedMesh();
-  var R = cropMesh(W, CROP.min, CROP.max);
-  if(!R.tris.length){ toast("裁切框內沒有幾何，範圍檢查一下", true); return; }
+  var C = cropMesh(W, CROP.min, CROP.max);
+  if(!C.mesh.tris.length){ toast("裁切框內沒有幾何，範圍檢查一下", true); return; }
   snapshot("裁切");
-  var capped = 0;
+  var mesh = C.mesh, newFace = C.newFace, keptOrigin = C.keptOrigin, capped = 0;
   if(document.getElementById("capCut").checked){
-    var f = fillHoles(R); R = f.mesh; capped = f.loops;
+    var f = fillHoles(mesh, newFace); mesh = f.mesh; newFace = f.newFace; capped = f.loops;
   }
-  MESH = R;
+  rebuildRawFromMesh(RAW, mesh, newFace, keptOrigin);
+  MESH = mesh; NEWFACE = newFace;
   TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
   rowsPos.forEach(function(r){ r.set(0); });
   rowsRot.forEach(function(r){ r.set(0); });
   rowsScl.forEach(function(r){ r.set(1); });
-  buildView(); invalidate(); updateHud(); resetCropToModel();
+  buildView(); reapplyTextureIfActive(); invalidate(); updateHud(); resetCropToModel();
   TOPO = topology(MESH); showBoundary(); updateTopoPanel();
   toast("已裁切，剩 " + MESH.tris.length.toLocaleString() + " 面" + (capped ? "，封了 "+capped+" 個切面" : ""));
 });
@@ -1013,11 +1221,17 @@ document.getElementById("check").addEventListener("click", function(){
 
 document.getElementById("fill").addEventListener("click", function(){
   if(!MESH) return;
-  var r = fillHoles(MESH);
+  var seedNew = NEWFACE || MESH.tris.map(function(){ return false; });
+  var r = fillHoles(MESH, seedNew);
   if(!r.loops){ toast("沒有找到可補的破洞"); TOPO = topology(MESH); showBoundary(); updateTopoPanel(); return; }
   snapshot("自動補洞");
-  MESH = dropUnused(weld(r.mesh, DIAG*1e-6));
-  buildView();
+  var origLen = MESH.tris.length;
+  var keptOrigin = r.mesh.tris.map(function(_, i){ return i < origLen ? i : null; });
+  var w1 = weld(r.mesh, DIAG*1e-6, [r.newFace, keptOrigin]);
+  var w2 = dropUnused(w1, w1.extra);
+  rebuildRawFromMesh(RAW, {verts:w2.verts, tris:w2.tris}, w2.extra[0], w2.extra[1]);
+  MESH = {verts:w2.verts, tris:w2.tris}; NEWFACE = w2.extra[0];
+  buildView(); reapplyTextureIfActive();
   TOPO = topology(MESH); showBoundary(); updateTopoPanel(); updateHud();
   toast("補了 " + r.loops + " 個破洞，新增 " + r.faces + " 面");
 });
@@ -1069,21 +1283,27 @@ function clearMeasure(){
 
 function setMeasMode(on){
   measOn = on;
+  if(on && typeof drillOn !== "undefined" && drillOn) setDrillMode(false);
   var b = document.getElementById("tMeas");
   b.setAttribute("aria-pressed", on ? "true" : "false");
   document.getElementById("measCard").className = on ? "on" : "";
   renderer.domElement.style.cursor = on ? "crosshair" : "";
 }
 
-function pickPoint(cx, cy){
+function pickHit(cx, cy){
   if(!meshObj) return null;
   var r = renderer.domElement.getBoundingClientRect();
   ndc.x = ((cx - r.left) / r.width) * 2 - 1;
   ndc.y = -((cy - r.top) / r.height) * 2 + 1;
   ray.setFromCamera(ndc, camera);
   var hits = ray.intersectObject(meshObj, false);
-  if(!hits.length) return null;
-  var h = hits[0], p = h.point.clone();
+  return hits.length ? hits[0] : null;
+}
+
+function pickPoint(cx, cy){
+  var h = pickHit(cx, cy);
+  if(!h) return null;
+  var p = h.point.clone();
   if(document.getElementById("measSnap").checked && h.face){
     var pos = meshObj.geometry.attributes.position, best = null, bd = Infinity;
     [h.face.a, h.face.b, h.face.c].forEach(function(i){
@@ -1124,14 +1344,78 @@ function renderMeas(){
   updateHud();
 }
 
+// The 6 world axis directions the drill normal can snap to
+var AXIS_DIRS = [
+  {v:new THREE.Vector3(1,0,0), s:"X"}, {v:new THREE.Vector3(-1,0,0), s:"X"},
+  {v:new THREE.Vector3(0,1,0), s:"Y"}, {v:new THREE.Vector3(0,-1,0), s:"Y"},
+  {v:new THREE.Vector3(0,0,1), s:"Z"}, {v:new THREE.Vector3(0,0,-1), s:"Z"}
+];
+function nearestAxis(n){
+  var best = AXIS_DIRS[0], bd = -Infinity;
+  AXIS_DIRS.forEach(function(a){
+    var d = a.v.dot(n);
+    if(d > bd){ bd = d; best = a; }
+  });
+  return best;
+}
+
+// Snapping only rotates the normal — the pick point stays exactly where it was
+// tapped, so what you clicked is still the hole's centre. A rotated axis through
+// that point generally still passes back through the surface nearby, so we
+// re-project along the snapped direction to land squarely back on the mesh.
+function reprojectDrillPoint(p, axisDir){
+  if(!meshObj) return p;
+  var origins = [p.clone().addScaledVector(axisDir, DIAG), p.clone().addScaledVector(axisDir, -DIAG)];
+  var best = null, bd = Infinity;
+  origins.forEach(function(o){
+    var dir = p.clone().sub(o).normalize();
+    ray.set(o, dir);
+    var hits = ray.intersectObject(meshObj, false);
+    hits.forEach(function(h){
+      var d = h.point.distanceTo(p);
+      if(d < bd){ bd = d; best = h.point; }
+    });
+  });
+  return best || p;
+}
+
+// Applied right after a pick, when the "對齊最近 X/Y/Z 軸" toggle is on — no
+// separate confirm step, the pick itself just lands pre-snapped. Always works
+// from the raw, un-snapped pick so flipping the toggle later can undo cleanly.
+function applyAxisSnapIfEnabled(){
+  if(!DRILL_RAW) return;
+  if(!document.getElementById("drillSnapAxis").checked){
+    DRILL = {p: DRILL_RAW.p.clone(), n: DRILL_RAW.n.clone()};
+    return;
+  }
+  var a = nearestAxis(DRILL_RAW.n);
+  var newP = reprojectDrillPoint(DRILL_RAW.p, a.v);
+  DRILL = {p:newP, n:a.v.clone()};
+}
+
 (function measureInput(){
   var el = renderer.domElement, down = null;
   el.addEventListener("pointerdown", function(e){ down = {x:e.clientX, y:e.clientY, t:Date.now()}; });
   el.addEventListener("pointerup", function(e){
-    if(!measOn || !down) return;
+    if(!down) return;
     var moved = Math.hypot(e.clientX-down.x, e.clientY-down.y);
     down = null;
     if(moved > 6) return;
+
+    if(drillOn){
+      var h = pickHit(e.clientX, e.clientY);
+      if(!h || !h.face){ toast("這裡沒有打到模型表面", true); return; }
+      var nm = new THREE.Matrix3().getNormalMatrix(meshObj.matrixWorld);
+      DRILL_RAW = {
+        p: h.point.clone(),
+        n: h.face.normal.clone().applyMatrix3(nm).normalize()
+      };
+      DRILL = {p: DRILL_RAW.p.clone(), n: DRILL_RAW.n.clone()};
+      applyAxisSnapIfEnabled();
+      renderDrill();
+      return;
+    }
+    if(!measOn) return;
     var p = pickPoint(e.clientX, e.clientY);
     if(!p){ toast("這裡沒有打到模型表面", true); return; }
     addMeasPoint(p);
@@ -1154,6 +1438,11 @@ function snapshot(label){
     verts: MESH.verts.map(function(v){ return v.slice(); }),
     tris: MESH.tris.map(function(t){ return t.slice(); }),
     tr: {pos:TR.pos.slice(), rot:TR.rot.slice(), scl:TR.scl.slice()},
+    raw: RAW ? {
+      verts: RAW.verts.map(function(v){ return v.slice(); }), tris: RAW.tris,
+      uvs: RAW.uvs, triUV: RAW.triUV, triMat: RAW.triMat, mtllib: RAW.mtllib
+    } : null,
+    newFace: NEWFACE ? NEWFACE.slice() : null,
     unit: UNIT, diag: DIAG
   });
   while(UNDO.length > UNDO_MAX) UNDO.shift();
@@ -1172,12 +1461,13 @@ function undo(){
   if(!UNDO.length) return;
   var s = UNDO.pop();
   MESH = {verts:s.verts, tris:s.tris};
+  RAW = s.raw; NEWFACE = s.newFace;
   TR = s.tr; UNIT = s.unit; DIAG = s.diag;
   document.getElementById("uFrom").value = UNIT;
   rowsPos.forEach(function(r, i){ r.bounds(-DIAG, DIAG, DIAG/1000); r.set(TR.pos[i]); });
   rowsRot.forEach(function(r, i){ r.set(TR.rot[i]); });
   rowsScl.forEach(function(r, i){ r.set(TR.scl[i]); });
-  buildView(); resetCropToModel(); clearMeasure();
+  buildView(); reapplyTextureIfActive(); resetCropToModel(); clearMeasure();
   if(TOPO) TOPO = topology(MESH);
   showBoundary(); updateTopoPanel(); updateHud(); syncUndoBtn();
   toast("已復原：" + s.label);
@@ -1356,7 +1646,7 @@ function glideTo(theta, phi){
 /* ================= units ================= */
 document.getElementById("uFrom").addEventListener("change", function(e){
   UNIT = e.target.value;
-  updateStats(); updateTopoPanel(); renderMeas(); updateHud();
+  updateStats(); updateTopoPanel(); renderMeas(); syncDrillInputs(); updateHud();
 });
 
 document.getElementById("uApply").addEventListener("click", function(){
@@ -1366,6 +1656,10 @@ document.getElementById("uApply").addEventListener("click", function(){
   if(from === to){ toast("來源與目標單位相同，不需換算"); return; }
   var k = UMM[from] / UMM[to];
   snapshot("單位換算 " + from + "→" + to);
+  mapRaw(function(p){ return [p[0]*k, p[1]*k, p[2]*k]; });
+  var dDia = document.getElementById("drillDia"), dDep = document.getElementById("drillDep");
+  dDia.value = round((parseFloat(dDia.value) || 0) * k);
+  dDep.value = round((parseFloat(dDep.value) || 0) * k);
   MESH = {
     verts: MESH.verts.map(function(v){ return [v[0]*k, v[1]*k, v[2]*k]; }),
     tris: MESH.tris.map(function(t){ return t.slice(); })
@@ -1378,7 +1672,7 @@ document.getElementById("uApply").addEventListener("click", function(){
   rowsPos.forEach(function(r){ r.bounds(-DIAG, DIAG, DIAG/1000); r.set(0); });
   rowsRot.forEach(function(r){ r.set(0); });
   rowsScl.forEach(function(r){ r.set(1); });
-  buildView(); fitCamera(); resetCropToModel(); clearMeasure();
+  buildView(); reapplyTextureIfActive(); fitCamera(); resetCropToModel(); clearMeasure();
   if(TOPO) TOPO = topology(MESH);
   showBoundary(); updateTopoPanel(); updateHud();
   toast("已換算為 " + to + "，比例 ×" + round(k));
@@ -1394,19 +1688,271 @@ document.getElementById("yzSwap").addEventListener("click", function(){
     ? function(v){ return [v[0], -v[2],  v[1]]; }
     : function(v){ return [v[0],  v[2], -v[1]]; };
   MESH = {verts: MESH.verts.map(f), tris: MESH.tris.map(function(t){ return t.slice(); })};
+  mapRaw(f);
   yzFlipped = !yzFlipped;
   TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
   rowsPos.forEach(function(r){ r.set(0); });
   rowsRot.forEach(function(r){ r.set(0); });
   rowsScl.forEach(function(r){ r.set(1); });
-  buildView(); fitCamera(); resetCropToModel(); clearMeasure();
+  buildView(); reapplyTextureIfActive(); fitCamera(); resetCropToModel(); clearMeasure();
   if(TOPO) TOPO = topology(MESH);
   showBoundary(); updateTopoPanel(); updateHud();
   toast("已互換 Y／Z 軸");
 });
 
+/* ================= drill mode ================= */
+var drillOn = false, DRILL = null, DRILL_RAW = null, drillPreview = null;
+
+function setDrillMode(on){
+  drillOn = on;
+  if(on && measOn) setMeasMode(false);
+  document.getElementById("tDrill").setAttribute("aria-pressed", on ? "true" : "false");
+  document.getElementById("drillCard").className = on ? "on" : "";
+  renderer.domElement.style.cursor = on ? "crosshair" : "";
+  if(!on) clearDrill();
+  else renderDrill();
+}
+
+function disposeDrillPreview(){
+  if(!drillPreview) return;
+  root.remove(drillPreview);
+  drillPreview.traverse(function(o){
+    if(o.geometry) o.geometry.dispose();
+    if(o.material) o.material.dispose();
+  });
+  drillPreview = null;
+}
+
+function clearDrill(){
+  DRILL = null;
+  DRILL_RAW = null;
+  disposeDrillPreview();
+  renderDrill();
+}
+
+function drillParams(){
+  var dia = parseFloat(document.getElementById("drillDia").value);
+  var dep = parseFloat(document.getElementById("drillDep").value);
+  return {dia:dia, dep:dep};
+}
+
+function syncDrillInputs(){
+  document.getElementById("drillDiaLbl").textContent = "直徑" + us();
+  document.getElementById("drillDepLbl").textContent = "深度" + us();
+}
+
+function renderDrill(){
+  syncDrillInputs();
+  var el = document.getElementById("drillOut");
+  el.innerHTML = DRILL
+    ? kv("狀態", "已選點") + kv("法線角", round(DRILL.n.angleTo(new THREE.Vector3(0,1,0))*180/Math.PI) + "°")
+    : kv("狀態", "在模型上點一下");
+  document.getElementById("drillGo").disabled = !DRILL;
+
+  disposeDrillPreview();
+  if(!DRILL) return;
+
+  var q = drillParams();
+  var axis = DRILL.n.clone().negate();
+  drillPreview = new THREE.Group();
+
+  // marker: a red ring showing the footprint, plus a dot on the picked point
+  var rad = (q.dia > 0 ? q.dia : DIAG*0.02) / 2;
+  var ring = new THREE.Mesh(
+    new THREE.RingGeometry(rad*0.97, rad*1.12, 48),
+    new THREE.MeshBasicMaterial({color:0xc23f0c, side:THREE.DoubleSide, depthTest:false, transparent:true})
+  );
+  ring.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), DRILL.n);
+  ring.position.copy(DRILL.p).addScaledVector(DRILL.n, DIAG*0.002);
+  ring.renderOrder = 8;
+  drillPreview.add(ring);
+
+  var dot = new THREE.Mesh(
+    new THREE.SphereGeometry(Math.max(rad*0.12, DIAG*0.004), 14, 10),
+    new THREE.MeshBasicMaterial({color:0xc23f0c, depthTest:false})
+  );
+  dot.position.copy(DRILL.p).addScaledVector(DRILL.n, DIAG*0.002);
+  dot.renderOrder = 8;
+  drillPreview.add(dot);
+
+  // bowl preview: matches the cosine falloff profile actually used, not a
+  // straight-walled cylinder — this method can only ever produce a smooth dent
+  if(q.dia > 0 && q.dep > 0){
+    var segs = 24, rings = 12, pos = [], idxs = [];
+    for(var ri=0; ri<=rings; ri++){
+      var rr = rad * ri/rings;
+      var kk = (1 + Math.cos(Math.PI * (ri/rings))) / 2;
+      var depthAt = q.dep * kk;
+      for(var si=0; si<=segs; si++){
+        var th = 2*Math.PI*si/segs;
+        pos.push(Math.cos(th)*rr, Math.sin(th)*rr, -depthAt);
+      }
+    }
+    for(var ri2=0; ri2<rings; ri2++){
+      for(var si2=0; si2<segs; si2++){
+        var a0=ri2*(segs+1)+si2, b0=a0+1, c0=a0+(segs+1), d0=c0+1;
+        idxs.push(a0,c0,b0, b0,c0,d0);
+      }
+    }
+    var bowlGeo = new THREE.BufferGeometry();
+    bowlGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    bowlGeo.setIndex(idxs);
+    bowlGeo.computeVertexNormals();
+    var bowl = new THREE.Mesh(bowlGeo, new THREE.MeshBasicMaterial({
+      color:0xc23f0c, transparent:true, opacity:.32, side:THREE.DoubleSide, depthWrite:false
+    }));
+    bowl.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), axis);
+    bowl.position.copy(DRILL.p);
+    bowl.renderOrder = 3;
+    drillPreview.add(bowl);
+  }
+  root.add(drillPreview);
+}
+
+document.getElementById("tDrill").addEventListener("click", function(){
+  if(!MESH && !drillOn){ toast("先載入一個 OBJ", true); return; }
+  setDrillMode(!drillOn);
+});
+document.getElementById("drillClr").addEventListener("click", clearDrill);
+document.getElementById("drillSnapAxis").addEventListener("change", function(){
+  applyAxisSnapIfEnabled();
+  renderDrill();
+});
+["drillDia","drillDep"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", renderDrill);
+  document.getElementById(id).addEventListener("change", renderDrill);
+});
+
+document.getElementById("drillGo").addEventListener("click", function(){
+  if(!MESH || !DRILL) return;
+  var q = drillParams();
+  if(!(q.dia > 0)){ toast("直徑要大於 0", true); return; }
+  if(!(q.dep > 0)){ toast("深度要大於 0", true); return; }
+
+  var W = bakedMesh();
+  var C = DRILL.p.clone(), A = DRILL.n.clone().negate().normalize();
+  var res = dentMesh(W, C, A, q.dia/2, q.dep);
+  if(!res.ok){ toast(res.why, true); return; }
+
+  snapshot("壓出凹陷");
+  // topology is unchanged (same triangles, only vertex positions moved), so
+  // RAW's UVs stay valid as-is — just move its vertices the identical way,
+  // exactly like the bake-transform / unit-conversion / Y-Z-swap operations do.
+  mapRaw(function(p){ return dentVertex(p, C, A, q.dia/2, q.dep); });
+  MESH = res.mesh;
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  clearDrill();
+  buildView(); reapplyTextureIfActive(); resetCropToModel(); clearMeasure();
+  TOPO = topology(MESH); showBoundary(); updateTopoPanel(); updateHud();
+  toast("已壓出凹陷，移動了 " + res.moved + " 個頂點" + (TOPO.closed ? "，模型仍為封閉" : ""));
+});
+
+/* ================= textures (display only) ================= */
+function texBase(p){ return String(p).split(/[\\/]/).pop().trim().toLowerCase(); }
+
+function parseMTL(text){
+  var map = {}, cur = null, lines = text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    var ln = lines[i].trim();
+    if(ln.indexOf("newmtl") === 0){ cur = ln.slice(6).trim(); }
+    else if(cur && (ln.indexOf("map_Kd") === 0 || ln.indexOf("map_Ka") === 0)){
+      var parts = ln.split(/\s+/);
+      map[cur] = texBase(parts[parts.length-1]);
+    }
+  }
+  return map;
+}
+
+function applyTextures(matToFile, images, silent){
+  if(!RAW){ if(!silent) toast("這個模型還沒有幾何", true); return false; }
+  if(!RAW.uvs.length){ if(!silent) toast("這個 OBJ 沒有 UV 座標，無法貼圖", true); return false; }
+  var names = Object.keys(images);
+  if(!names.length){ if(!silent) toast("沒有選到任何圖檔", true); return false; }
+  var fallback = images[names[0]];
+
+  var PLACEHOLDER = "__untextured__";
+  var groups = {}, order = [], newCount = 0;
+  RAW.tris.forEach(function(t, i){
+    var u = RAW.triUV[i];
+    var noUV = !u || u[0] < 0 || u[1] < 0 || u[2] < 0;
+    var m = noUV ? PLACEHOLDER : (RAW.triMat[i] || "__default");
+    if(noUV) newCount++;
+    if(!groups[m]){ groups[m] = []; order.push(m); }
+    groups[m].push(i);
+  });
+
+  var pos = [], uv = [], mats = [], start = 0;
+  var geo = new THREE.BufferGeometry();
+  var loader = new THREE.TextureLoader();
+
+  order.forEach(function(m, gi){
+    var list = groups[m];
+    var isPlaceholder = (m === PLACEHOLDER);
+    list.forEach(function(i){
+      var t = RAW.tris[i], u = RAW.triUV[i];
+      for(var c=0;c<3;c++){
+        var v = RAW.verts[t[c]];
+        pos.push(v[0], v[1], v[2]);
+        var w = (!isPlaceholder && u[c] >= 0 && RAW.uvs[u[c]]) ? RAW.uvs[u[c]] : [0, 0];
+        uv.push(w[0], w[1]);
+      }
+    });
+    geo.addGroup(start, list.length*3, gi);
+    start += list.length*3;
+
+    var mat;
+    if(isPlaceholder){
+      // faces added by crop/fill/drill have no source UV — flag them instead of
+      // guessing, so a stretched or wrong texture never gets mistaken for real
+      mat = new THREE.MeshStandardMaterial({color:0xc9cfd6, roughness:.9, metalness:0, side:THREE.DoubleSide});
+    } else {
+      mat = new THREE.MeshStandardMaterial({roughness:.85, metalness:0, side:THREE.DoubleSide});
+      var src = images[matToFile[m]] || fallback;
+      if(src) mat.map = loader.load(src, function(){ mat.needsUpdate = true; });
+    }
+    mats.push(mat);
+  });
+
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+
+  dropTexture();
+  texObj = new THREE.Mesh(geo, mats);
+  root.add(texObj);
+  if(meshObj) meshObj.visible = false;
+  lastTexture = {matToFile: matToFile, images: images};
+  if(!silent){
+    toast("貼圖已套用（" + order.length + " 個材質，僅供檢視）" +
+          (newCount ? "，" + newCount + " 個面無原始 UV，以灰色標示" : ""));
+  }
+  return true;
+}
+
+document.getElementById("texFile").addEventListener("change", function(e){
+  var files = Array.prototype.slice.call(e.target.files);
+  e.target.value = "";
+  if(!MESH){ toast("先載入一個 OBJ", true); return; }
+  if(!files.length) return;
+
+  var images = {}, matToFile = {}, pending = files.length;
+  files.forEach(function(f){
+    var fr = new FileReader();
+    fr.onload = function(){
+      if(/\.mtl$/i.test(f.name)) matToFile = parseMTL(fr.result);
+      else images[texBase(f.name)] = fr.result;
+      if(--pending === 0) applyTextures(matToFile, images);
+    };
+    fr.onerror = function(){ if(--pending === 0) applyTextures(matToFile, images); };
+    if(/\.mtl$/i.test(f.name)) fr.readAsText(f); else fr.readAsDataURL(f);
+  });
+});
+
 /* ================= boot ================= */
-resize(); syncCube(); applyCam(); updateTopoPanel(); setMeasMode(false);
+resize(); syncCube(); applyCam(); updateTopoPanel(); setMeasMode(false); setDrillMode(false);
 setTimeout(resize, 60);
 })();
 </script>
