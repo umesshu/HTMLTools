@@ -1,0 +1,1414 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OBJ 網格工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef0f3;
+    --panel:#fafbfc;
+    --panel-2:#f0f2f5;
+    --line:#d7dce2;
+    --text:#1d2328;
+    --muted:#6b7680;
+    --accent:#2e7bb8;
+    --signal:#c25a18;
+    --ok:#3d8a58;
+    --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:"Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:var(--sans);font-size:13px;line-height:1.5;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{display:flex;height:100%;width:100%}
+
+  /* ---------- viewport ---------- */
+  #stage{position:relative;flex:1;min-width:0;overflow:hidden;background:
+    radial-gradient(circle at 50% 38%, #ffffff 0%, #e3e7ec 100%);}
+  #stage canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #drop{
+    position:absolute;inset:0;display:none;place-items:center;
+    background:rgba(46,123,184,.08);border:2px dashed var(--accent);
+    font-family:var(--mono);letter-spacing:.08em;color:var(--accent);
+    pointer-events:none;z-index:5;
+  }
+  #drop.on{display:grid}
+  #cube{
+    position:absolute;top:12px;right:12px;z-index:6;
+    width:144px;height:144px;touch-action:none;cursor:grab;
+  }
+  #cube:active{cursor:grabbing}
+  #viewBar{
+    position:absolute;right:12px;bottom:12px;z-index:6;display:flex;gap:8px;align-items:flex-end;
+  }
+  #tools, #undoBar{
+    display:flex;gap:4px;
+    background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:9px;padding:5px;
+    box-shadow:0 3px 14px rgba(29,35,40,.12);
+  }
+  .tool{
+    width:36px;height:36px;padding:0;display:grid;place-items:center;
+    border:none;background:transparent;border-radius:6px;color:var(--muted);cursor:pointer;
+  }
+  .tool:hover:not(:disabled){background:#e8ecf0;color:var(--text)}
+  .tool:disabled{opacity:.32;cursor:not-allowed}
+  .tool[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .tool svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  #measCard{
+    position:absolute;right:12px;bottom:60px;z-index:6;display:none;width:196px;
+    background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:9px;padding:11px 12px;
+    box-shadow:0 3px 14px rgba(29,35,40,.12);
+  }
+  #measCard.on{display:block}
+  #measCard .chk{font-size:12px}
+  select{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:11.5px;padding:6px 7px;border-radius:3px;
+  }
+  .urow{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:7px;margin-bottom:9px}
+  .urow .arw{text-align:center;color:var(--muted);font-family:var(--mono)}
+  #hud{
+    position:absolute;left:14px;bottom:12px;z-index:4;
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    letter-spacing:.04em;pointer-events:none;white-space:pre;
+  }
+  #empty{
+    position:absolute;inset:0;display:grid;place-content:center;text-align:center;
+    gap:10px;padding:24px;z-index:3;
+  }
+  #empty.hide{display:none}
+  #empty .mark{
+    font-family:var(--mono);font-size:11px;letter-spacing:.34em;
+    color:var(--accent);text-transform:uppercase;
+  }
+  #empty h1{font-size:22px;font-weight:500;margin:0;letter-spacing:.02em}
+  #empty p{color:var(--muted);margin:0;max-width:34ch;font-size:12.5px}
+
+  /* ---------- panel ---------- */
+  #panel{
+    width:328px;flex:0 0 328px;background:var(--panel);
+    border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  #panel header{
+    padding:14px 16px 12px;border-bottom:1px solid var(--line);
+  }
+  #panel header .t{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  #panel header .n{font-size:14px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* signature: seal status strip */
+  #seal{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 16px;border-bottom:1px solid var(--line);
+    background:var(--panel-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+  }
+  #seal .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 9px;
+    box-shadow:0 0 0 3px rgba(107,118,128,.18);transition:.25s}
+  #seal.ok .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(61,138,88,.22)}
+  #seal.bad .dot{background:var(--signal);box-shadow:0 0 0 3px rgba(194,90,24,.24);
+    animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 7px rgba(194,90,24,0)}}
+  #seal .txt{flex:1}
+  #seal .ct{color:var(--muted)}
+
+  #scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+  section{border-bottom:1px solid var(--line);padding:13px 16px 15px}
+  section > h2{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 10px;display:flex;align-items:center;gap:8px;
+  }
+  section > h2::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .row{display:grid;grid-template-columns:22px 1fr 62px;align-items:center;gap:8px;margin-bottom:7px}
+  .row .lb{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line);
+    border-radius:2px;outline:none;margin:0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--accent);border:2px solid var(--panel);cursor:pointer;
+    box-shadow:0 1px 3px rgba(29,35,40,.25);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--panel);cursor:pointer;
+  }
+  input[type=number]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:11px;padding:4px 5px;border-radius:3px;text-align:right;
+  }
+  input[type=number]:focus,input[type=range]:focus-visible,button:focus-visible,label:focus-within{
+    outline:2px solid var(--accent);outline-offset:1px;
+  }
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+  button{
+    font-family:var(--sans);font-size:12.5px;color:var(--text);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:4px;
+    padding:8px 10px;cursor:pointer;width:100%;transition:.15s;
+  }
+  button:hover:not(:disabled){border-color:#b6bec7;background:#e7eaee}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+  button.primary:hover:not(:disabled){background:#3a8bcb;border-color:#3a8bcb}
+  button.warn{border-color:rgba(194,90,24,.45);color:var(--signal)}
+  button.warn:hover:not(:disabled){background:rgba(194,90,24,.08)}
+  .btns{display:grid;gap:7px}
+  .btns.two{grid-template-columns:1fr 1fr}
+
+  .chk{display:flex;align-items:center;gap:8px;margin-bottom:9px;cursor:pointer;user-select:none}
+  .chk input{
+    -webkit-appearance:none;appearance:none;width:15px;height:15px;flex:0 0 15px;
+    border:1px solid var(--line);border-radius:3px;background:var(--panel-2);cursor:pointer;position:relative;
+  }
+  .chk input:checked{background:var(--accent);border-color:var(--accent)}
+  .chk input:checked::after{
+    content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);
+  }
+
+  .stats{font-family:var(--mono);font-size:11px;display:grid;gap:3px}
+  .stats div{display:flex;justify-content:space-between;gap:10px}
+  .stats .k{color:var(--muted)}
+  .stats .v.bad{color:var(--signal)}
+  .stats .v.good{color:var(--ok)}
+
+  .hint{font-size:11.5px;color:var(--muted);margin:8px 0 0;line-height:1.55}
+  .file-btn{display:block}
+  .file-btn input{display:none}
+  .file-btn span{
+    display:block;text-align:center;background:var(--accent);color:#fff;font-weight:500;
+    border-radius:4px;padding:9px 10px;cursor:pointer;font-size:12.5px;
+  }
+  .file-btn span:hover{background:#3a8bcb}
+
+  #toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+    background:#fff;border:1px solid var(--line);border-left:3px solid var(--accent);
+    box-shadow:0 6px 20px rgba(29,35,40,.14);
+    padding:9px 15px;border-radius:4px;font-size:12.5px;z-index:20;
+    opacity:0;pointer-events:none;transition:.22s;max-width:88vw;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast.bad{border-left-color:var(--signal)}
+
+  @media (max-width:860px){
+    #app{flex-direction:column}
+    #stage{flex:0 0 46vh}
+    #panel{width:100%;flex:1 1 auto;border-left:none;border-top:1px solid var(--line)}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="drop">放開以載入 OBJ</div>
+    <div id="empty">
+      <div class="mark">obj workbench</div>
+      <h1>載入一個 OBJ 檔開始</h1>
+      <p>拖進來，或用右側的載入按鈕。全部在瀏覽器本機處理，檔案不會上傳。<br>單指拖曳旋轉，雙指平移與縮放。</p>
+    </div>
+    <canvas id="cube" width="144" height="144" aria-label="視角方塊"></canvas>
+
+    <div id="measCard">
+      <div class="stats" id="measOut"></div>
+      <label class="chk" style="margin:8px 0 8px"><input type="checkbox" id="measSnap" checked><span>吸附到最近頂點</span></label>
+      <button id="measClr">清除量測</button>
+    </div>
+
+    <div id="viewBar">
+      <div id="undoBar">
+        <button class="tool" id="tUndo" title="復原" aria-label="復原上一步" disabled>
+          <svg viewBox="0 0 24 24"><path d="M3 8h12a5 5 0 0 1 0 10h-6"/><path d="M7 4 3 8l4 4"/></svg>
+        </button>
+      </div>
+
+      <div id="tools" role="toolbar" aria-label="顯示工具">
+      <button class="tool" id="tWire" aria-pressed="false" title="線框疊加" aria-label="線框疊加">
+        <svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+      </button>
+      <button class="tool" id="tGrid" aria-pressed="true" title="地面格線" aria-label="地面格線">
+        <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+      </button>
+      <button class="tool" id="tMeas" aria-pressed="false" title="量測距離" aria-label="量測距離">
+        <svg viewBox="0 0 24 24"><path d="M2 14 14 2l8 8L10 22z"/><path d="M6 10l2 2M9 7l2 2M12 4l2 2"/></svg>
+      </button>
+      <button class="tool" id="tFit" title="重新對正視角" aria-label="重新對正視角">
+        <svg viewBox="0 0 24 24"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      </div>
+    </div>
+
+    <div id="hud"></div>
+  </div>
+
+  <div id="panel">
+    <header>
+      <div class="t">網格工作台</div>
+      <div class="n" id="fname">尚未載入檔案</div>
+    </header>
+
+    <div id="seal">
+      <div class="dot"></div>
+      <div class="txt">封閉性　<span class="ct" id="sealTxt">尚未檢查</span></div>
+    </div>
+
+    <div id="scroll">
+      <section>
+        <h2>檔案</h2>
+        <label class="file-btn"><input type="file" id="file" accept=".obj"><span>載入 OBJ</span></label>
+        <div class="stats" id="stats" style="margin:10px 0 12px"></div>
+        <div class="urow">
+          <select id="uFrom" aria-label="目前單位">
+            <option value="none">未指定</option>
+            <option value="mm">公釐 mm</option>
+            <option value="cm">公分 cm</option>
+            <option value="m">公尺 m</option>
+            <option value="in">英吋 in</option>
+          </select>
+          <div class="arw">→</div>
+          <select id="uTo" aria-label="換算為">
+            <option value="mm">公釐 mm</option>
+            <option value="cm">公分 cm</option>
+            <option value="m">公尺 m</option>
+            <option value="in">英吋 in</option>
+          </select>
+        </div>
+        <button id="uApply">套用單位換算</button>
+        <button id="yzSwap" style="margin-top:7px">Y／Z 軸互換</button>
+        <p class="hint">OBJ 檔本身不記錄單位。先在左邊指定檔案原本的單位，尺寸與量測值就會帶上單位；要改成別的單位再按套用換算，會直接改寫頂點座標。<br>Y／Z 互換用於 Z 軸朝上的 CAD 與 Y 軸朝上的檢視慣例之間轉換，再按一次會轉回來。</p>
+      </section>
+
+      <section>
+        <h2>變換</h2>
+        <div id="trPos"></div>
+        <div style="height:6px"></div>
+        <div id="trRot"></div>
+        <div style="height:6px"></div>
+        <div id="trScl"></div>
+        <label class="chk" style="margin-top:8px"><input type="checkbox" id="lockScale" checked><span>等比縮放</span></label>
+        <div class="btns two">
+          <button id="bakeTr">套用變換</button>
+          <button id="resetTr">歸零</button>
+        </div>
+        <p class="hint">「套用變換」把目前的位移／旋轉／縮放寫進頂點座標，之後裁切與匯出都以此為準。</p>
+      </section>
+
+      <section>
+        <h2>邊界裁切</h2>
+        <label class="chk"><input type="checkbox" id="cropOn"><span>顯示裁切框</span></label>
+        <div id="cropRows"></div>
+        <label class="chk" style="margin-top:8px"><input type="checkbox" id="capCut" checked><span>切面自動補平封起來</span></label>
+        <div class="btns two">
+          <button id="doCrop" class="warn">套用裁切</button>
+          <button id="resetCrop">重設範圍</button>
+        </div>
+        <p class="hint">裁切會刪除框外的幾何並在切面上重新產生三角面。此操作不可復原，先存一份原檔比較保險。</p>
+      </section>
+
+      <section>
+        <h2>封閉性</h2>
+        <div class="stats" id="topo"></div>
+        <div class="btns" style="margin-top:10px">
+          <button id="check">檢查封閉性</button>
+          <button id="fill">自動補洞</button>
+        </div>
+        <label class="chk" style="margin-top:9px"><input type="checkbox" id="showBnd" checked><span>在視圖中標示破洞邊界</span></label>
+      </section>
+
+      <section>
+        <h2>匯出</h2>
+        <div class="btns two">
+          <button id="expObj" class="primary">匯出 OBJ</button>
+          <button id="expStl" class="primary">匯出 STL</button>
+        </div>
+        <p class="hint">匯出時會自動套用目前的變換。STL 為二進位格式。</p>
+      </section>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ================= state ================= */
+var MESH = null;                       // {verts:[[x,y,z]..], tris:[[a,b,c]..]}
+var TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+var CROP = {min:[-1,-1,-1], max:[1,1,1]};
+var RANGE = {min:[-1,-1,-1], max:[1,1,1]};   // slider extents
+var DIAG = 1;
+var TOPO = null;
+var fileName = "";
+var UNIT = "none";
+var VIS = {wire:false, grid:true};
+var UMM = {mm:1, cm:10, m:1000, "in":25.4};
+function us(){ return UNIT === "none" ? "" : " " + UNIT; }
+function us3(){ return UNIT === "none" ? "" : " " + UNIT + "³"; }
+
+/* ================= three ================= */
+var stage = document.getElementById("stage");
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(45, 1, .01, 10000);
+var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc6ced6, 0.95));
+var key = new THREE.DirectionalLight(0xffffff, 0.62); key.position.set(1,1.4,.8); scene.add(key);
+var rim = new THREE.DirectionalLight(0x9fbdd6, 0.32); rim.position.set(-1,-.4,-1); scene.add(rim);
+
+var root = new THREE.Group(); scene.add(root);
+var meshObj=null, wireObj=null, bndObj=null;
+
+var grid = new THREE.GridHelper(10, 10, 0x9aa5b0, 0xc4ccd4);
+grid.material.transparent = true; grid.material.opacity = .8; scene.add(grid);
+
+var boxEdges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1,1,1)),
+  new THREE.LineBasicMaterial({color:0x2e7bb8, transparent:true, opacity:.9})
+);
+boxEdges.visible = false; scene.add(boxEdges);
+
+var matSolid = new THREE.MeshStandardMaterial({
+  color:0x8e9aa6, roughness:.58, metalness:.05, flatShading:true, side:THREE.DoubleSide
+});
+var matWire = new THREE.ShaderMaterial({
+  uniforms:{
+    uColor:{value:new THREE.Color(0x2e7bb8)},
+    uThick:{value:3.0},
+    uOpacity:{value:0.5}
+  },
+  vertexShader:[
+    "attribute vec3 bary;",
+    "varying vec3 vB;",
+    "void main(){ vB = bary; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }"
+  ].join("\n"),
+  fragmentShader:[
+    "varying vec3 vB;",
+    "uniform vec3 uColor; uniform float uThick; uniform float uOpacity;",
+    "void main(){",
+    "  vec3 d = fwidth(vB);",
+    "  vec3 a = smoothstep(vec3(0.0), d * uThick, vB);",
+    "  float e = min(min(a.x, a.y), a.z);",
+    "  if(e > 0.98) discard;",
+    "  gl_FragColor = vec4(uColor, (1.0 - e) * uOpacity);",
+    "}"
+  ].join("\n"),
+  transparent:true, depthWrite:false, side:THREE.DoubleSide,
+  extensions:{derivatives:true},
+  polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1
+});
+var matBnd  = new THREE.LineBasicMaterial({color:0xc23f0c, linewidth:2});
+var matMeas = new THREE.LineBasicMaterial({color:0x1d2328, transparent:true, opacity:.9, depthTest:false});
+var matPin  = new THREE.MeshBasicMaterial({color:0xc23f0c, depthTest:false});
+var measGroup = new THREE.Group(); measGroup.renderOrder = 5; scene.add(measGroup);
+var MEAS = [];
+
+/* ---- camera controls (hand-rolled orbit) ---- */
+var target = new THREE.Vector3();
+var sph = {r:6, theta:Math.PI*0.28, phi:Math.PI*0.38};
+function applyCam(){
+  sph.phi = Math.max(0.02, Math.min(Math.PI-0.02, sph.phi));
+  sph.r = Math.max(0.02, sph.r);
+  camera.position.set(
+    target.x + sph.r*Math.sin(sph.phi)*Math.sin(sph.theta),
+    target.y + sph.r*Math.cos(sph.phi),
+    target.z + sph.r*Math.sin(sph.phi)*Math.cos(sph.theta)
+  );
+  camera.lookAt(target);
+  if(typeof syncCube === "function") syncCube();
+}
+(function(){
+  var el = renderer.domElement, ptr = {}, mode = null, last = null, lastDist = 0, lastMid = null;
+  function pos(e){ return {x:e.clientX, y:e.clientY}; }
+  function ids(){ return Object.keys(ptr); }
+  el.addEventListener("pointerdown", function(e){
+    el.setPointerCapture(e.pointerId); ptr[e.pointerId] = pos(e);
+    if(ids().length === 1){ mode = (e.button===2 || e.shiftKey) ? "pan" : "rot"; last = pos(e); }
+    else if(ids().length === 2){ mode = "multi"; var p = twoPointer(); lastDist = p.d; lastMid = p.m; }
+  });
+  el.addEventListener("pointermove", function(e){
+    if(!(e.pointerId in ptr)) return;
+    ptr[e.pointerId] = pos(e);
+    if(mode === "rot" && last){
+      var p = pos(e);
+      sph.theta -= (p.x - last.x) * 0.007;
+      sph.phi   -= (p.y - last.y) * 0.007;
+      last = p; applyCam();
+    } else if(mode === "pan" && last){
+      var q = pos(e); pan(q.x - last.x, q.y - last.y); last = q; applyCam();
+    } else if(mode === "multi"){
+      var t = twoPointer();
+      sph.r *= lastDist / Math.max(1, t.d);
+      pan(t.m.x - lastMid.x, t.m.y - lastMid.y);
+      lastDist = t.d; lastMid = t.m; applyCam();
+    }
+  });
+  function up(e){ delete ptr[e.pointerId]; if(ids().length===0){mode=null;last=null;} else if(ids().length===1){mode="rot"; last=ptr[ids()[0]];} }
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+  el.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  el.addEventListener("wheel", function(e){
+    e.preventDefault(); sph.r *= Math.pow(1.0016, e.deltaY); applyCam();
+  }, {passive:false});
+  function twoPointer(){
+    var k = ids(), a = ptr[k[0]], b = ptr[k[1]];
+    return {d:Math.hypot(a.x-b.x, a.y-b.y), m:{x:(a.x+b.x)/2, y:(a.y+b.y)/2}};
+  }
+  function pan(dx, dy){
+    var s = sph.r * 0.0022;
+    var right = new THREE.Vector3(), up2 = new THREE.Vector3();
+    camera.updateMatrixWorld();
+    right.setFromMatrixColumn(camera.matrixWorld, 0);
+    up2.setFromMatrixColumn(camera.matrixWorld, 1);
+    target.addScaledVector(right, -dx*s).addScaledVector(up2, dy*s);
+  }
+})();
+
+function resize(){
+  var w = stage.clientWidth, h = stage.clientHeight;
+  if(!w || !h) return;
+  renderer.setSize(w, h, true);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+(function loop(){
+  requestAnimationFrame(loop);
+  renderer.render(scene, camera);
+  if(cRenderer) cRenderer.render(cScene, cCam);
+})();
+
+/* ================= OBJ parsing ================= */
+function parseOBJ(text){
+  var verts = [], tris = [], lines = text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    var ln = lines[i];
+    if(ln.charCodeAt(0) === 118 && ln.charCodeAt(1) === 32){          // "v "
+      var p = ln.split(/\s+/);
+      verts.push([parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3])]);
+    } else if(ln.charCodeAt(0) === 102 && ln.charCodeAt(1) === 32){   // "f "
+      var t = ln.trim().split(/\s+/), idx = [];
+      for(var j=1;j<t.length;j++){
+        var v = parseInt(t[j].split("/")[0], 10);
+        if(isNaN(v)) continue;
+        idx.push(v > 0 ? v-1 : verts.length + v);
+      }
+      for(var k=1;k+1<idx.length;k++) tris.push([idx[0], idx[k], idx[k+1]]);
+    }
+  }
+  return {verts:verts, tris:tris};
+}
+
+function objText(M){
+  var out = ["# exported from OBJ 網格工作台", "o mesh"];
+  for(var i=0;i<M.verts.length;i++){
+    var v = M.verts[i];
+    out.push("v " + fx(v[0]) + " " + fx(v[1]) + " " + fx(v[2]));
+  }
+  for(var j=0;j<M.tris.length;j++){
+    var t = M.tris[j];
+    out.push("f " + (t[0]+1) + " " + (t[1]+1) + " " + (t[2]+1));
+  }
+  return out.join("\n") + "\n";
+}
+function fx(n){ return (Math.round(n*1e6)/1e6).toString(); }
+
+function stlBinary(M){
+  var n = M.tris.length;
+  var buf = new ArrayBuffer(84 + n*50), dv = new DataView(buf), o = 84;
+  dv.setUint32(80, n, true);
+  for(var i=0;i<n;i++){
+    var t = M.tris[i], a = M.verts[t[0]], b = M.verts[t[1]], c = M.verts[t[2]];
+    var ux=b[0]-a[0], uy=b[1]-a[1], uz=b[2]-a[2];
+    var vx=c[0]-a[0], vy=c[1]-a[1], vz=c[2]-a[2];
+    var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+    var L = Math.hypot(nx,ny,nz) || 1;
+    dv.setFloat32(o, nx/L, true); dv.setFloat32(o+4, ny/L, true); dv.setFloat32(o+8, nz/L, true); o+=12;
+    [a,b,c].forEach(function(p){
+      dv.setFloat32(o, p[0], true); dv.setFloat32(o+4, p[1], true); dv.setFloat32(o+8, p[2], true); o+=12;
+    });
+    dv.setUint16(o, 0, true); o+=2;
+  }
+  return buf;
+}
+
+/* ================= mesh ops ================= */
+function bbox(verts){
+  var mn = [Infinity,Infinity,Infinity], mx = [-Infinity,-Infinity,-Infinity];
+  for(var i=0;i<verts.length;i++) for(var a=0;a<3;a++){
+    if(verts[i][a] < mn[a]) mn[a] = verts[i][a];
+    if(verts[i][a] > mx[a]) mx[a] = verts[i][a];
+  }
+  if(!verts.length){ mn=[-1,-1,-1]; mx=[1,1,1]; }
+  return {min:mn, max:mx};
+}
+
+function weld(M, eps){
+  var map = new Map(), nv = [], remap = new Array(M.verts.length);
+  for(var i=0;i<M.verts.length;i++){
+    var v = M.verts[i];
+    var kk = Math.round(v[0]/eps)+"|"+Math.round(v[1]/eps)+"|"+Math.round(v[2]/eps);
+    var id = map.get(kk);
+    if(id === undefined){ id = nv.length; nv.push([v[0],v[1],v[2]]); map.set(kk, id); }
+    remap[i] = id;
+  }
+  var nt = [];
+  for(var j=0;j<M.tris.length;j++){
+    var t = M.tris[j], a = remap[t[0]], b = remap[t[1]], c = remap[t[2]];
+    if(a===undefined||b===undefined||c===undefined) continue;
+    if(a!==b && b!==c && a!==c) nt.push([a,b,c]);
+  }
+  return {verts:nv, tris:nt};
+}
+
+function dropUnused(M){
+  var used = new Int32Array(M.verts.length).fill(-1), nv = [];
+  for(var i=0;i<M.tris.length;i++) for(var k=0;k<3;k++){
+    var id = M.tris[i][k];
+    if(used[id] === -1){ used[id] = nv.length; nv.push(M.verts[id]); }
+  }
+  var nt = M.tris.map(function(t){ return [used[t[0]], used[t[1]], used[t[2]]]; });
+  return {verts:nv, tris:nt};
+}
+
+// Sutherland–Hodgman clip of every triangle against one axis-aligned half-space
+function clipPlane(M, axis, value, keepBelow){
+  var V = M.verts.slice(), out = [], cache = new Map();
+  function d(v){ return keepBelow ? value - v[axis] : v[axis] - value; }
+  function cut(i, j){
+    var kk = i<j ? i+"_"+j : j+"_"+i, got = cache.get(kk);
+    if(got !== undefined) return got;
+    var a = V[i], b = V[j], da = d(a), db = d(b), t = da/(da-db);
+    var p = [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+    p[axis] = value;
+    var id = V.length; V.push(p); cache.set(kk, id); return id;
+  }
+  for(var n=0;n<M.tris.length;n++){
+    var tri = M.tris[n], poly = [], dd = [d(V[tri[0]]), d(V[tri[1]]), d(V[tri[2]])];
+    for(var i=0;i<3;i++){
+      var j = (i+1)%3;
+      if(dd[i] >= 0) poly.push(tri[i]);
+      if((dd[i] > 0 && dd[j] < 0) || (dd[i] < 0 && dd[j] > 0)) poly.push(cut(tri[i], tri[j]));
+    }
+    for(var f=1;f+1<poly.length;f++){
+      var a=poly[0], b=poly[f], c=poly[f+1];
+      if(a!==b && b!==c && a!==c) out.push([a,b,c]);
+    }
+  }
+  return {verts:V, tris:out};
+}
+
+function cropMesh(M, mn, mx){
+  var R = M;
+  for(var a=0;a<3;a++){
+    R = clipPlane(R, a, mx[a], true);
+    R = clipPlane(R, a, mn[a], false);
+  }
+  return dropUnused(weld(R, DIAG*1e-6));
+}
+
+// directed boundary edges -> loops
+function boundaryLoops(M){
+  var seen = new Map();     // "a_b" -> count
+  var dir = [];
+  for(var i=0;i<M.tris.length;i++){
+    var t = M.tris[i];
+    for(var k=0;k<3;k++){
+      var a = t[k], b = t[(k+1)%3];
+      var kk = a<b ? a+"_"+b : b+"_"+a;
+      seen.set(kk, (seen.get(kk)||0) + 1);
+      dir.push([a,b,kk]);
+    }
+  }
+  var next = new Map();
+  for(var j=0;j<dir.length;j++){
+    if(seen.get(dir[j][2]) === 1){
+      if(!next.has(dir[j][0])) next.set(dir[j][0], []);
+      next.get(dir[j][0]).push(dir[j][1]);
+    }
+  }
+  var loops = [], used = new Set();
+  next.forEach(function(_, start){
+    var arr = next.get(start);
+    for(var s=0;s<arr.length;s++){
+      if(used.has(start+"_"+arr[s])) continue;
+      var loop = [start], cur = arr[s], guard = 0;
+      used.add(start+"_"+arr[s]);
+      while(cur !== start && guard++ < 200000){
+        loop.push(cur);
+        var nx = next.get(cur);
+        if(!nx) break;
+        var picked = null;
+        for(var q=0;q<nx.length;q++){ if(!used.has(cur+"_"+nx[q])){ picked = nx[q]; used.add(cur+"_"+nx[q]); break; } }
+        if(picked === null) break;
+        cur = picked;
+      }
+      if(cur === start && loop.length >= 3) loops.push(loop);
+    }
+  });
+  return {loops:loops, edges:seen, dirs:dir};
+}
+
+function topology(M){
+  var m = new Map();
+  for(var i=0;i<M.tris.length;i++){
+    var t = M.tris[i];
+    for(var k=0;k<3;k++){
+      var a = t[k], b = t[(k+1)%3], kk = a<b ? a+"_"+b : b+"_"+a;
+      m.set(kk, (m.get(kk)||0) + 1);
+    }
+  }
+  var open = [], nonman = 0;
+  m.forEach(function(c, kk){
+    if(c === 1) open.push(kk.split("_").map(Number));
+    else if(c > 2) nonman++;
+  });
+  var vol = 0;
+  for(var n=0;n<M.tris.length;n++){
+    var tt = M.tris[n], a = M.verts[tt[0]], b = M.verts[tt[1]], c = M.verts[tt[2]];
+    vol += (a[0]*(b[1]*c[2]-b[2]*c[1]) - a[1]*(b[0]*c[2]-b[2]*c[0]) + a[2]*(b[0]*c[1]-b[1]*c[0]))/6;
+  }
+  return {openEdges:open, nonManifold:nonman, volume:vol, closed:(open.length===0 && nonman===0)};
+}
+
+function fillHoles(M){
+  var R = {verts:M.verts.map(function(v){return v.slice();}), tris:M.tris.map(function(t){return t.slice();})};
+  var info = boundaryLoops(R), added = 0;
+  for(var i=0;i<info.loops.length;i++){
+    var L = info.loops[i];
+    if(L.length < 3) continue;
+    var cx=0, cy=0, cz=0;
+    for(var j=0;j<L.length;j++){ var v = R.verts[L[j]]; cx+=v[0]; cy+=v[1]; cz+=v[2]; }
+    var ci = R.verts.length;
+    R.verts.push([cx/L.length, cy/L.length, cz/L.length]);
+    for(var k=0;k<L.length;k++){
+      var a = L[k], b = L[(k+1)%L.length];
+      R.tris.push([b, a, ci]); added++;
+    }
+  }
+  return {mesh:R, loops:info.loops.length, faces:added};
+}
+
+/* ================= view sync ================= */
+function buildView(){
+  if(meshObj){ root.remove(meshObj); meshObj.geometry.dispose(); meshObj = null; }
+  if(wireObj){ root.remove(wireObj); wireObj.geometry.dispose(); wireObj = null; }
+  if(!MESH) return;
+
+  var pos = new Float32Array(MESH.verts.length*3);
+  for(var i=0;i<MESH.verts.length;i++){
+    pos[i*3] = MESH.verts[i][0]; pos[i*3+1] = MESH.verts[i][1]; pos[i*3+2] = MESH.verts[i][2];
+  }
+  var idx = new Uint32Array(MESH.tris.length*3);
+  for(var j=0;j<MESH.tris.length;j++){
+    idx[j*3] = MESH.tris[j][0]; idx[j*3+1] = MESH.tris[j][1]; idx[j*3+2] = MESH.tris[j][2];
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeVertexNormals();
+
+  meshObj = new THREE.Mesh(g, matSolid); root.add(meshObj);
+
+  var wp = new Float32Array(MESH.tris.length*9), wb = new Float32Array(MESH.tris.length*9);
+  for(var t=0;t<MESH.tris.length;t++){
+    for(var c=0;c<3;c++){
+      var v = MESH.verts[MESH.tris[t][c]];
+      wp[t*9+c*3] = v[0]; wp[t*9+c*3+1] = v[1]; wp[t*9+c*3+2] = v[2];
+      wb[t*9+c*3+c] = 1;
+    }
+  }
+  var wg = new THREE.BufferGeometry();
+  wg.setAttribute("position", new THREE.BufferAttribute(wp, 3));
+  wg.setAttribute("bary", new THREE.BufferAttribute(wb, 3));
+  wireObj = new THREE.Mesh(wg, matWire);
+  wireObj.visible = VIS.wire;
+  root.add(wireObj);
+  syncTransform();
+}
+
+function syncTransform(){
+  root.position.set(TR.pos[0], TR.pos[1], TR.pos[2]);
+  root.rotation.set(TR.rot[0]*Math.PI/180, TR.rot[1]*Math.PI/180, TR.rot[2]*Math.PI/180);
+  root.scale.set(TR.scl[0], TR.scl[1], TR.scl[2]);
+  if(typeof MEAS !== "undefined" && MEAS.length) clearMeasure();
+  updateHud();
+}
+
+function bakedMesh(){
+  root.updateMatrixWorld(true);
+  var m = root.matrixWorld, v = new THREE.Vector3();
+  return {
+    verts: MESH.verts.map(function(p){
+      v.set(p[0],p[1],p[2]).applyMatrix4(m); return [v.x, v.y, v.z];
+    }),
+    tris: MESH.tris.map(function(t){ return t.slice(); })
+  };
+}
+
+function showBoundary(){
+  if(bndObj){ scene.remove(bndObj); bndObj.geometry.dispose(); bndObj = null; }
+  if(!TOPO || !MESH) return;
+  if(!document.getElementById("showBnd").checked) return;
+  if(!TOPO.openEdges.length) return;
+  var arr = new Float32Array(TOPO.openEdges.length*6);
+  for(var i=0;i<TOPO.openEdges.length;i++){
+    var e = TOPO.openEdges[i], a = MESH.verts[e[0]], b = MESH.verts[e[1]];
+    arr.set([a[0],a[1],a[2],b[0],b[1],b[2]], i*6);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+  bndObj = new THREE.LineSegments(g, matBnd);
+  bndObj.renderOrder = 2;
+  root.add(bndObj);
+}
+
+function fitCamera(){
+  if(!MESH) return;
+  var B = bbox(bakedMesh().verts);
+  var cx = (B.min[0]+B.max[0])/2, cy = (B.min[1]+B.max[1])/2, cz = (B.min[2]+B.max[2])/2;
+  var d = Math.hypot(B.max[0]-B.min[0], B.max[1]-B.min[1], B.max[2]-B.min[2]) || 1;
+  target.set(cx, cy, cz);
+  sph.r = d * 1.7;
+  camera.near = d/500; camera.far = d*100; camera.updateProjectionMatrix();
+  grid.scale.setScalar(d/5);
+  applyCam();
+}
+
+/* ================= UI plumbing ================= */
+function mkRow(host, label, min, max, step, val, cb){
+  var row = document.createElement("div"); row.className = "row";
+  var lb = document.createElement("div"); lb.className = "lb"; lb.textContent = label;
+  var rg = document.createElement("input"); rg.type = "range";
+  rg.min = min; rg.max = max; rg.step = step; rg.value = val;
+  rg.setAttribute("aria-label", label);
+  var nb = document.createElement("input"); nb.type = "number"; nb.step = step; nb.value = round(val);
+  nb.setAttribute("aria-label", label);
+  row.append(lb, rg, nb); host.appendChild(row);
+  rg.addEventListener("input", function(){ nb.value = round(+rg.value); cb(+rg.value); });
+  nb.addEventListener("change", function(){
+    var v = +nb.value; if(isNaN(v)) return;
+    rg.value = v; cb(v);
+  });
+  return {
+    set:function(v){ rg.value = v; nb.value = round(v); },
+    bounds:function(a,b,s){ rg.min = a; rg.max = b; if(s) { rg.step = s; nb.step = s; } }
+  };
+}
+function round(n){ return Math.round(n*1000)/1000; }
+
+var rowsPos = [], rowsRot = [], rowsScl = [], rowsCrop = [];
+var AX = ["X","Y","Z"];
+
+(function buildRows(){
+  var hp = document.getElementById("trPos"), hr = document.getElementById("trRot"), hs = document.getElementById("trScl"), hc = document.getElementById("cropRows");
+  AX.forEach(function(a, i){
+    rowsPos.push(mkRow(hp, a, -1, 1, .001, 0, function(v){ TR.pos[i] = v; syncTransform(); }));
+  });
+  AX.forEach(function(a, i){
+    rowsRot.push(mkRow(hr, a+"°", -180, 180, .5, 0, function(v){ TR.rot[i] = v; syncTransform(); }));
+  });
+  AX.forEach(function(a, i){
+    rowsScl.push(mkRow(hs, a, .01, 5, .001, 1, function(v){
+      if(document.getElementById("lockScale").checked){
+        TR.scl = [v, v, v]; rowsScl.forEach(function(r){ r.set(v); });
+      } else TR.scl[i] = v;
+      syncTransform();
+    }));
+  });
+  ["X 下限","X 上限","Y 下限","Y 上限","Z 下限","Z 上限"].forEach(function(lbl, n){
+    var axis = Math.floor(n/2), isMax = n%2;
+    rowsCrop.push(mkRow(hc, lbl.replace(" 下限","↓").replace(" 上限","↑"), -1, 1, .001, 0, function(v){
+      if(isMax) CROP.max[axis] = Math.max(v, CROP.min[axis]);
+      else CROP.min[axis] = Math.min(v, CROP.max[axis]);
+      drawCropBox();
+    }));
+  });
+})();
+
+function resetCropToModel(){
+  if(!MESH) return;
+  var B = bbox(bakedMesh().verts);
+  var pad = DIAG * 0.15;
+  for(var a=0;a<3;a++){
+    CROP.min[a] = B.min[a]; CROP.max[a] = B.max[a];
+    RANGE.min[a] = B.min[a] - pad; RANGE.max[a] = B.max[a] + pad;
+    rowsCrop[a*2].bounds(RANGE.min[a], RANGE.max[a], DIAG/2000);
+    rowsCrop[a*2+1].bounds(RANGE.min[a], RANGE.max[a], DIAG/2000);
+    rowsCrop[a*2].set(CROP.min[a]);
+    rowsCrop[a*2+1].set(CROP.max[a]);
+  }
+  drawCropBox();
+}
+
+function drawCropBox(){
+  var on = document.getElementById("cropOn").checked && !!MESH;
+  boxEdges.visible = on;
+  if(!on) return;
+  boxEdges.position.set(
+    (CROP.min[0]+CROP.max[0])/2, (CROP.min[1]+CROP.max[1])/2, (CROP.min[2]+CROP.max[2])/2
+  );
+  boxEdges.scale.set(
+    Math.max(1e-6, CROP.max[0]-CROP.min[0]),
+    Math.max(1e-6, CROP.max[1]-CROP.min[1]),
+    Math.max(1e-6, CROP.max[2]-CROP.min[2])
+  );
+}
+
+function updateStats(){
+  var el = document.getElementById("stats");
+  if(!MESH){ el.innerHTML = ""; return; }
+  var B = bbox(bakedMesh().verts);
+  el.innerHTML =
+    kv("頂點", MESH.verts.length.toLocaleString()) +
+    kv("三角面", MESH.tris.length.toLocaleString()) +
+    kv("尺寸 X", round(B.max[0]-B.min[0]) + us()) +
+    kv("尺寸 Y", round(B.max[1]-B.min[1]) + us()) +
+    kv("尺寸 Z", round(B.max[2]-B.min[2]) + us());
+}
+function kv(k, v, cls){
+  return '<div><span class="k">'+k+'</span><span class="v '+(cls||"")+'">'+v+'</span></div>';
+}
+
+function updateTopoPanel(){
+  var el = document.getElementById("topo"), seal = document.getElementById("seal"), st = document.getElementById("sealTxt");
+  if(!TOPO){
+    el.innerHTML = '<div><span class="k">狀態</span><span class="v">尚未檢查</span></div>';
+    seal.className = ""; st.textContent = "尚未檢查"; return;
+  }
+  el.innerHTML =
+    kv("破洞邊界", TOPO.openEdges.length, TOPO.openEdges.length ? "bad" : "good") +
+    kv("非流形邊", TOPO.nonManifold, TOPO.nonManifold ? "bad" : "good") +
+    kv("體積", round(Math.abs(TOPO.volume)) + us3(), TOPO.closed ? "good" : "");
+  if(TOPO.closed){ seal.className = "ok"; st.textContent = "封閉 · 可列印"; }
+  else{
+    seal.className = "bad";
+    st.textContent = TOPO.openEdges.length ? (TOPO.openEdges.length + " 條破洞邊") : (TOPO.nonManifold + " 條非流形邊");
+  }
+}
+
+function updateHud(){
+  var s = MESH
+    ? "面數 " + MESH.tris.length.toLocaleString() + "   縮放 " + round(TR.scl[0]) + "×"
+    : "";
+  if(MEAS && MEAS.length === 2) s += "\n量測 " + round(MEAS[0].distanceTo(MEAS[1])) + us();
+  document.getElementById("hud").textContent = s;
+  updateStats();
+}
+
+function toast(msg, bad){
+  var t = document.getElementById("toast");
+  t.textContent = msg; t.className = "show" + (bad ? " bad" : "");
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.className = ""; }, 2600);
+}
+
+function invalidate(){ TOPO = null; showBoundary(); updateTopoPanel(); }
+
+/* ================= actions ================= */
+function loadText(text, name){
+  var raw = parseOBJ(text);
+  if(!raw.verts.length || !raw.tris.length){ toast("這個檔案裡找不到三角面資料", true); return; }
+  var B = bbox(raw.verts);
+  DIAG = Math.hypot(B.max[0]-B.min[0], B.max[1]-B.min[1], B.max[2]-B.min[2]) || 1;
+  var before = raw.verts.length;
+  MESH = dropUnused(weld(raw, DIAG*1e-6));
+  fileName = name;
+  document.getElementById("fname").textContent = name;
+  document.getElementById("empty").classList.add("hide");
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r,i){ r.bounds(-DIAG, DIAG, DIAG/1000); r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  buildView(); fitCamera(); resetCropToModel(); invalidate(); clearMeasure();
+  UNDO = []; syncUndoBtn(); yzFlipped = false; updateHud();
+  var merged = before - MESH.verts.length;
+  toast("已載入 " + MESH.tris.length.toLocaleString() + " 個三角面" + (merged>0 ? "（合併了 "+merged+" 個重複頂點）" : ""));
+}
+
+document.getElementById("file").addEventListener("change", function(e){
+  var f = e.target.files[0]; if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){ loadText(fr.result, f.name); };
+  fr.readAsText(f);
+  e.target.value = "";
+});
+
+(function dnd(){
+  var d = document.getElementById("drop");
+  ["dragenter","dragover"].forEach(function(k){
+    stage.addEventListener(k, function(e){ e.preventDefault(); d.classList.add("on"); });
+  });
+  ["dragleave","drop"].forEach(function(k){
+    stage.addEventListener(k, function(e){ e.preventDefault(); d.classList.remove("on"); });
+  });
+  stage.addEventListener("drop", function(e){
+    var f = e.dataTransfer.files[0]; if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){ loadText(fr.result, f.name); };
+    fr.readAsText(f);
+  });
+})();
+
+document.getElementById("bakeTr").addEventListener("click", function(){
+  if(!MESH) return;
+  snapshot("套用變換");
+  MESH = bakedMesh();
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  buildView(); invalidate(); updateHud();
+  toast("變換已寫入頂點座標");
+});
+
+document.getElementById("resetTr").addEventListener("click", function(){
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  syncTransform();
+});
+
+document.getElementById("cropOn").addEventListener("change", drawCropBox);
+document.getElementById("resetCrop").addEventListener("click", resetCropToModel);
+
+document.getElementById("doCrop").addEventListener("click", function(){
+  if(!MESH) return;
+  var W = bakedMesh();
+  var R = cropMesh(W, CROP.min, CROP.max);
+  if(!R.tris.length){ toast("裁切框內沒有幾何，範圍檢查一下", true); return; }
+  snapshot("裁切");
+  var capped = 0;
+  if(document.getElementById("capCut").checked){
+    var f = fillHoles(R); R = f.mesh; capped = f.loops;
+  }
+  MESH = R;
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  buildView(); invalidate(); updateHud(); resetCropToModel();
+  TOPO = topology(MESH); showBoundary(); updateTopoPanel();
+  toast("已裁切，剩 " + MESH.tris.length.toLocaleString() + " 面" + (capped ? "，封了 "+capped+" 個切面" : ""));
+});
+
+document.getElementById("check").addEventListener("click", function(){
+  if(!MESH) return;
+  TOPO = topology(MESH); showBoundary(); updateTopoPanel();
+  toast(TOPO.closed ? "模型是封閉的" : "偵測到 " + TOPO.openEdges.length + " 條破洞邊界", !TOPO.closed);
+});
+
+document.getElementById("fill").addEventListener("click", function(){
+  if(!MESH) return;
+  var r = fillHoles(MESH);
+  if(!r.loops){ toast("沒有找到可補的破洞"); TOPO = topology(MESH); showBoundary(); updateTopoPanel(); return; }
+  snapshot("自動補洞");
+  MESH = dropUnused(weld(r.mesh, DIAG*1e-6));
+  buildView();
+  TOPO = topology(MESH); showBoundary(); updateTopoPanel(); updateHud();
+  toast("補了 " + r.loops + " 個破洞，新增 " + r.faces + " 面");
+});
+
+document.getElementById("showBnd").addEventListener("change", showBoundary);
+
+document.getElementById("tWire").addEventListener("click", function(){
+  VIS.wire = !VIS.wire;
+  this.setAttribute("aria-pressed", VIS.wire ? "true" : "false");
+  if(wireObj) wireObj.visible = VIS.wire;
+});
+document.getElementById("tGrid").addEventListener("click", function(){
+  VIS.grid = !VIS.grid;
+  this.setAttribute("aria-pressed", VIS.grid ? "true" : "false");
+  grid.visible = VIS.grid;
+});
+document.getElementById("tFit").addEventListener("click", fitCamera);
+
+function save(blob, name){
+  var a = document.createElement("a"), url = URL.createObjectURL(blob);
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 400);
+}
+function baseName(){ return (fileName || "mesh").replace(/\.obj$/i, ""); }
+
+document.getElementById("expObj").addEventListener("click", function(){
+  if(!MESH) return;
+  save(new Blob([objText(bakedMesh())], {type:"text/plain"}), baseName() + "_edited.obj");
+  toast("OBJ 已下載");
+});
+document.getElementById("expStl").addEventListener("click", function(){
+  if(!MESH) return;
+  save(new Blob([stlBinary(bakedMesh())], {type:"application/octet-stream"}), baseName() + "_edited.stl");
+  toast("STL 已下載");
+});
+
+/* ================= measurement ================= */
+var measOn = false, ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+
+function clearMeasure(){
+  while(measGroup.children.length){
+    var c = measGroup.children.pop();
+    if(c.geometry) c.geometry.dispose();
+  }
+  MEAS = [];
+  renderMeas();
+  updateHud();
+}
+
+function setMeasMode(on){
+  measOn = on;
+  var b = document.getElementById("tMeas");
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  document.getElementById("measCard").className = on ? "on" : "";
+  renderer.domElement.style.cursor = on ? "crosshair" : "";
+}
+
+function pickPoint(cx, cy){
+  if(!meshObj) return null;
+  var r = renderer.domElement.getBoundingClientRect();
+  ndc.x = ((cx - r.left) / r.width) * 2 - 1;
+  ndc.y = -((cy - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(ndc, camera);
+  var hits = ray.intersectObject(meshObj, false);
+  if(!hits.length) return null;
+  var h = hits[0], p = h.point.clone();
+  if(document.getElementById("measSnap").checked && h.face){
+    var pos = meshObj.geometry.attributes.position, best = null, bd = Infinity;
+    [h.face.a, h.face.b, h.face.c].forEach(function(i){
+      var q = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(meshObj.matrixWorld);
+      var d = q.distanceTo(h.point);
+      if(d < bd){ bd = d; best = q; }
+    });
+    if(best) p = best;
+  }
+  return p;
+}
+
+function addMeasPoint(p){
+  if(MEAS.length >= 2) clearMeasure();
+  MEAS.push(p);
+  var pin = new THREE.Mesh(new THREE.SphereGeometry(DIAG*0.008, 14, 10), matPin);
+  pin.position.copy(p); pin.renderOrder = 6; measGroup.add(pin);
+  if(MEAS.length === 2){
+    var g = new THREE.BufferGeometry().setFromPoints([MEAS[0], MEAS[1]]);
+    var ln = new THREE.Line(g, matMeas); ln.renderOrder = 6; measGroup.add(ln);
+  }
+  renderMeas();
+}
+
+function renderMeas(){
+  var el = document.getElementById("measOut");
+  if(MEAS.length < 2){
+    el.innerHTML = MEAS.length === 1
+      ? '<div><span class="k">狀態</span><span class="v">再點一個點</span></div>'
+      : '<div><span class="k">狀態</span><span class="v">在模型上點兩下</span></div>';
+    updateHud(); return;
+  }
+  var a = MEAS[0], b = MEAS[1];
+  var dx = Math.abs(b.x-a.x), dy = Math.abs(b.y-a.y), dz = Math.abs(b.z-a.z);
+  el.innerHTML =
+    kv("距離", round(a.distanceTo(b)) + us()) +
+    kv("ΔX", round(dx) + us()) + kv("ΔY", round(dy) + us()) + kv("ΔZ", round(dz) + us());
+  updateHud();
+}
+
+(function measureInput(){
+  var el = renderer.domElement, down = null;
+  el.addEventListener("pointerdown", function(e){ down = {x:e.clientX, y:e.clientY, t:Date.now()}; });
+  el.addEventListener("pointerup", function(e){
+    if(!measOn || !down) return;
+    var moved = Math.hypot(e.clientX-down.x, e.clientY-down.y);
+    down = null;
+    if(moved > 6) return;
+    var p = pickPoint(e.clientX, e.clientY);
+    if(!p){ toast("這裡沒有打到模型表面", true); return; }
+    addMeasPoint(p);
+  });
+})();
+
+document.getElementById("tMeas").addEventListener("click", function(){
+  if(!MESH && !measOn){ toast("先載入一個 OBJ", true); return; }
+  setMeasMode(!measOn);
+});
+document.getElementById("measClr").addEventListener("click", clearMeasure);
+
+/* ================= undo (keeps last 3 steps) ================= */
+var UNDO = [], UNDO_MAX = 3;
+
+function snapshot(label){
+  if(!MESH) return;
+  UNDO.push({
+    label: label,
+    verts: MESH.verts.map(function(v){ return v.slice(); }),
+    tris: MESH.tris.map(function(t){ return t.slice(); }),
+    tr: {pos:TR.pos.slice(), rot:TR.rot.slice(), scl:TR.scl.slice()},
+    unit: UNIT, diag: DIAG
+  });
+  while(UNDO.length > UNDO_MAX) UNDO.shift();
+  syncUndoBtn();
+}
+
+function syncUndoBtn(){
+  var b = document.getElementById("tUndo");
+  b.disabled = UNDO.length === 0;
+  b.title = UNDO.length
+    ? "復原「" + UNDO[UNDO.length-1].label + "」，還可回復 " + UNDO.length + " 步"
+    : "沒有可復原的步驟";
+}
+
+function undo(){
+  if(!UNDO.length) return;
+  var s = UNDO.pop();
+  MESH = {verts:s.verts, tris:s.tris};
+  TR = s.tr; UNIT = s.unit; DIAG = s.diag;
+  document.getElementById("uFrom").value = UNIT;
+  rowsPos.forEach(function(r, i){ r.bounds(-DIAG, DIAG, DIAG/1000); r.set(TR.pos[i]); });
+  rowsRot.forEach(function(r, i){ r.set(TR.rot[i]); });
+  rowsScl.forEach(function(r, i){ r.set(TR.scl[i]); });
+  buildView(); resetCropToModel(); clearMeasure();
+  if(TOPO) TOPO = topology(MESH);
+  showBoundary(); updateTopoPanel(); updateHud(); syncUndoBtn();
+  toast("已復原：" + s.label);
+}
+
+document.getElementById("tUndo").addEventListener("click", undo);
+window.addEventListener("keydown", function(e){
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z"){ e.preventDefault(); undo(); }
+});
+
+/* ================= view cube ================= */
+var cubeCanvas = document.getElementById("cube");
+var cRenderer = new THREE.WebGLRenderer({canvas:cubeCanvas, antialias:true, alpha:true});
+cRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+cRenderer.setSize(144, 144, true);
+
+var cScene = new THREE.Scene();
+var cCam = new THREE.OrthographicCamera(-1.42, 1.42, 1.42, -1.42, 0.1, 20);
+
+function faceTex(label){
+  var c = document.createElement("canvas"); c.width = c.height = 160;
+  var x = c.getContext("2d");
+  x.fillStyle = "#f7f9fb"; x.fillRect(0, 0, 160, 160);
+  x.strokeStyle = "#c2cad3"; x.lineWidth = 7; x.strokeRect(4, 4, 152, 152);
+  x.fillStyle = "#252c33";
+  x.font = '600 34px "IBM Plex Mono", ui-monospace, monospace';
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(label, 80, 82);
+  var t = new THREE.CanvasTexture(c);
+  t.anisotropy = 4;
+  return t;
+}
+// BoxGeometry material order: +X, -X, +Y, -Y, +Z, -Z
+var cubeMats = ["Right", "Left", "Top", "Bottom", "Front", "Back"].map(function(s){
+  return new THREE.MeshBasicMaterial({map:faceTex(s)});
+});
+var cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), cubeMats);
+cScene.add(cubeMesh);
+cScene.add(new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002)),
+  new THREE.LineBasicMaterial({color:0x8d97a1})
+));
+
+// origin marker + X/Y/Z vectors, anchored at the front-bottom-left corner
+function axisLabelTex(text, css){
+  var c = document.createElement("canvas"); c.width = c.height = 64;
+  var x = c.getContext("2d");
+  x.fillStyle = css;
+  x.font = '700 46px "IBM Plex Mono", ui-monospace, monospace';
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(text, 32, 34);
+  var t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+  return t;
+}
+(function buildTriad(){
+  var O = new THREE.Vector3(-0.5, -0.5, -0.5), L = 0.55, R = 0.022;
+  var axes = [
+    {d:new THREE.Vector3(1,0,0), hex:0xd0342c, css:"#d0342c", s:"X"},
+    {d:new THREE.Vector3(0,1,0), hex:0x2f9e44, css:"#2f9e44", s:"Y"},
+    {d:new THREE.Vector3(0,0,1), hex:0x2e7bb8, css:"#2e7bb8", s:"Z"}
+  ];
+
+  // each part is drawn twice: a faint pass that ignores depth (shows through the
+  // cube when occluded) and a solid pass that respects it
+  function place(geo, hex, pos, quat){
+    var ghost = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color:hex, transparent:true, opacity:0.22, depthTest:false, depthWrite:false
+    }));
+    var solid = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({color:hex}));
+    [ghost, solid].forEach(function(m, i){
+      m.position.copy(pos);
+      if(quat) m.quaternion.copy(quat);
+      m.renderOrder = 10 + i;
+      cScene.add(m);
+    });
+  }
+
+  axes.forEach(function(a){
+    var end = O.clone().addScaledVector(a.d, L);
+    var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), a.d);
+
+    // GL line width is ignored by browsers, so the axes are drawn as rods
+    place(new THREE.CylinderGeometry(R, R, L, 14), a.hex,
+          O.clone().addScaledVector(a.d, L/2), q);
+    place(new THREE.ConeGeometry(R*2.4, 0.15, 14), a.hex, end, q);
+
+    var tex = axisLabelTex(a.s, a.css);
+    var lg = new THREE.Sprite(new THREE.SpriteMaterial({
+      map:tex, transparent:true, opacity:0.28, depthTest:false, depthWrite:false
+    }));
+    var ls = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
+    [lg, ls].forEach(function(sp, i){
+      sp.position.copy(O.clone().addScaledVector(a.d, L + 0.26));
+      sp.scale.set(0.3, 0.3, 0.3);
+      sp.renderOrder = 12 + i;
+      cScene.add(sp);
+    });
+  });
+
+  place(new THREE.SphereGeometry(0.09, 18, 14), 0x252c33, O, null);
+})();
+
+function syncCube(){
+  cCam.position.set(
+    Math.sin(sph.phi) * Math.sin(sph.theta),
+    Math.cos(sph.phi),
+    Math.sin(sph.phi) * Math.cos(sph.theta)
+  ).multiplyScalar(6);
+  cCam.up.set(0, 1, 0);
+  cCam.lookAt(0, 0, 0);
+}
+
+var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function glideTo(theta, phi){
+  var t0 = sph.theta, p0 = sph.phi, dt = theta - t0;
+  while(dt > Math.PI) dt -= Math.PI*2;
+  while(dt < -Math.PI) dt += Math.PI*2;
+  var dp = phi - p0;
+  if(reduceMotion){ sph.theta = theta; sph.phi = phi; applyCam(); return; }
+  var t0ms = performance.now(), dur = 340;
+  (function step(now){
+    var k = Math.min(1, (now - t0ms) / dur);
+    var e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2)/2;
+    sph.theta = t0 + dt*e; sph.phi = p0 + dp*e; applyCam();
+    if(k < 1) requestAnimationFrame(step);
+  })(t0ms);
+}
+
+(function cubeInput(){
+  var cRay = new THREE.Raycaster(), cNdc = new THREE.Vector2();
+  var down = null, dragging = false, last = null;
+
+  cubeCanvas.addEventListener("pointerdown", function(e){
+    e.stopPropagation();
+    cubeCanvas.setPointerCapture(e.pointerId);
+    down = {x:e.clientX, y:e.clientY}; last = {x:e.clientX, y:e.clientY}; dragging = false;
+  });
+  cubeCanvas.addEventListener("pointermove", function(e){
+    if(!down) return;
+    e.stopPropagation();
+    if(!dragging && Math.hypot(e.clientX-down.x, e.clientY-down.y) > 4) dragging = true;
+    if(dragging){
+      sph.theta -= (e.clientX - last.x) * 0.011;
+      sph.phi   -= (e.clientY - last.y) * 0.011;
+      applyCam();
+    }
+    last = {x:e.clientX, y:e.clientY};
+  });
+  cubeCanvas.addEventListener("pointerup", function(e){
+    e.stopPropagation();
+    if(down && !dragging) snapTo(e.clientX, e.clientY);
+    down = null; dragging = false;
+  });
+  cubeCanvas.addEventListener("pointercancel", function(){ down = null; dragging = false; });
+  cubeCanvas.addEventListener("wheel", function(e){ e.stopPropagation(); });
+
+  function snapTo(cx, cy){
+    var r = cubeCanvas.getBoundingClientRect();
+    cNdc.x = ((cx - r.left) / r.width) * 2 - 1;
+    cNdc.y = -((cy - r.top) / r.height) * 2 + 1;
+    cRay.setFromCamera(cNdc, cCam);
+    var hit = cRay.intersectObject(cubeMesh, false)[0];
+    if(!hit) return;
+    var p = hit.point, lim = 0.34;
+    var v = new THREE.Vector3(
+      Math.abs(p.x) > lim ? Math.sign(p.x) : 0,
+      Math.abs(p.y) > lim ? Math.sign(p.y) : 0,
+      Math.abs(p.z) > lim ? Math.sign(p.z) : 0
+    );
+    if(v.lengthSq() === 0) return;
+    v.normalize();
+    glideTo(Math.atan2(v.x, v.z), Math.acos(Math.max(-1, Math.min(1, v.y))));
+  }
+})();
+
+/* ================= units ================= */
+document.getElementById("uFrom").addEventListener("change", function(e){
+  UNIT = e.target.value;
+  updateStats(); updateTopoPanel(); renderMeas(); updateHud();
+});
+
+document.getElementById("uApply").addEventListener("click", function(){
+  if(!MESH){ toast("先載入一個 OBJ", true); return; }
+  var from = document.getElementById("uFrom").value, to = document.getElementById("uTo").value;
+  if(from === "none"){ toast("請先指定這個檔案原本的單位", true); return; }
+  if(from === to){ toast("來源與目標單位相同，不需換算"); return; }
+  var k = UMM[from] / UMM[to];
+  snapshot("單位換算 " + from + "→" + to);
+  MESH = {
+    verts: MESH.verts.map(function(v){ return [v[0]*k, v[1]*k, v[2]*k]; }),
+    tris: MESH.tris.map(function(t){ return t.slice(); })
+  };
+  var B = bbox(MESH.verts);
+  DIAG = Math.hypot(B.max[0]-B.min[0], B.max[1]-B.min[1], B.max[2]-B.min[2]) || 1;
+  UNIT = to;
+  document.getElementById("uFrom").value = to;
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.bounds(-DIAG, DIAG, DIAG/1000); r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  buildView(); fitCamera(); resetCropToModel(); clearMeasure();
+  if(TOPO) TOPO = topology(MESH);
+  showBoundary(); updateTopoPanel(); updateHud();
+  toast("已換算為 " + to + "，比例 ×" + round(k));
+});
+
+var yzFlipped = false;
+document.getElementById("yzSwap").addEventListener("click", function(){
+  if(!MESH){ toast("先載入一個 OBJ", true); return; }
+  snapshot("Y／Z 軸互換");
+  // a rotation about X, not a mirror — chirality is preserved, so threads and
+  // other handed features stay correct. The second press is the exact inverse.
+  var f = yzFlipped
+    ? function(v){ return [v[0], -v[2],  v[1]]; }
+    : function(v){ return [v[0],  v[2], -v[1]]; };
+  MESH = {verts: MESH.verts.map(f), tris: MESH.tris.map(function(t){ return t.slice(); })};
+  yzFlipped = !yzFlipped;
+  TR = {pos:[0,0,0], rot:[0,0,0], scl:[1,1,1]};
+  rowsPos.forEach(function(r){ r.set(0); });
+  rowsRot.forEach(function(r){ r.set(0); });
+  rowsScl.forEach(function(r){ r.set(1); });
+  buildView(); fitCamera(); resetCropToModel(); clearMeasure();
+  if(TOPO) TOPO = topology(MESH);
+  showBoundary(); updateTopoPanel(); updateHud();
+  toast("已互換 Y／Z 軸");
+});
+
+/* ================= boot ================= */
+resize(); syncCube(); applyCam(); updateTopoPanel(); setMeasMode(false);
+setTimeout(resize, 60);
+})();
+</script>
+</body>
+</html>
