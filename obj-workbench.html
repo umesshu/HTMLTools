@@ -455,9 +455,10 @@ var matPin  = new THREE.MeshBasicMaterial({color:0xc23f0c, depthTest:false});
 var measGroup = new THREE.Group(); measGroup.renderOrder = 5; scene.add(measGroup);
 var MEAS = [];
 
-/* ---- camera controls (hand-rolled orbit) ---- */
-var target = new THREE.Vector3();
-var sph = {r:6, theta:Math.PI*0.28, phi:Math.PI*0.38};
+/* ---- camera controls (true arcball — pivot fixed in space, not forced to centre) ---- */
+var target = new THREE.Vector3();          // default pivot when nothing has been picked
+var camQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.38, 0.28, 0, "YXZ"));
+var camR = 6;                              // distance from camera to target, kept in sync
 var pivotMarker = new THREE.Mesh(
   new THREE.SphereGeometry(1, 16, 12),
   new THREE.MeshBasicMaterial({color:0xc23f0c, depthTest:false})
@@ -467,20 +468,41 @@ pivotMarker.renderOrder = 9;
 scene.add(pivotMarker);
 var pivotRay = new THREE.Raycaster();
 function applyCam(){
-  sph.phi = Math.max(0.02, Math.min(Math.PI-0.02, sph.phi));
-  sph.r = Math.max(0.02, sph.r);
-  camera.position.set(
-    target.x + sph.r*Math.sin(sph.phi)*Math.sin(sph.theta),
-    target.y + sph.r*Math.cos(sph.phi),
-    target.z + sph.r*Math.sin(sph.phi)*Math.cos(sph.theta)
-  );
-  camera.lookAt(target);
+  camR = Math.max(0.02, camR);
+  var back = new THREE.Vector3(0, 0, 1).applyQuaternion(camQuat).multiplyScalar(camR);
+  camera.position.copy(target).add(back);
+  camera.quaternion.copy(camQuat);
+  if(typeof syncCube === "function") syncCube();
+}
+// Rotates the camera (position AND orientation) rigidly around a fixed pivot P,
+// like spinning a transparent globe centred on P and dragging the whole rig
+// around with it. The rotation axis is derived from the drag direction itself
+// (perpendicular to it, in the camera's own screen plane) rather than a fixed
+// world axis, so nothing ever aligns with — or degenerates near — any
+// particular direction. This is also provably neutral about where P sits on
+// screen: because position and orientation rotate by the exact same amount
+// around the exact same point, P's position in camera-local space — and
+// therefore its projected screen position — never changes through the whole
+// drag, whether that's dead centre or off in a corner. Nothing here nudges it
+// toward the middle.
+function rotateAroundPivot(P, dx, dy){
+  var angle = Math.sqrt(dx*dx + dy*dy) * 0.007;
+  if(angle < 1e-9) return;
+  var right = new THREE.Vector3(1,0,0).applyQuaternion(camQuat);
+  var up = new THREE.Vector3(0,1,0).applyQuaternion(camQuat);
+  var axis = new THREE.Vector3().addScaledVector(right, -dy).addScaledVector(up, -dx).normalize();
+  var dq = new THREE.Quaternion().setFromAxisAngle(axis, angle);
+  var offset = camera.position.clone().sub(P).applyQuaternion(dq);
+  camera.position.copy(P).add(offset);
+  camQuat.premultiply(dq).normalize();
+  camera.quaternion.copy(camQuat);
+  target.copy(P);
+  camR = offset.length();
   if(typeof syncCube === "function") syncCube();
 }
 (function(){
   var el = renderer.domElement, ptr = {}, mode = null, last = null, lastDist = 0, lastMid = null;
-  var pendingPivot = null;   // raycast hit stashed at pointerdown, applied on first move
-  var downCamPos = null, downCamQuat = null;   // exact camera state at the moment of pointerdown
+  var pivot = null;   // world point this drag rotates around — picked at pointerdown
   function pos(e){ return {x:e.clientX, y:e.clientY}; }
   function ids(){ return Object.keys(ptr); }
   el.addEventListener("pointerdown", function(e){
@@ -488,11 +510,9 @@ function applyCam(){
     el.setPointerCapture(e.pointerId); ptr[e.pointerId] = pos(e);
     if(ids().length === 1){
       mode = (e.button===2 || e.shiftKey) ? "pan" : "rot"; last = pos(e);
-      if(mode === "rot"){
-        downCamPos = camera.position.clone();
-        downCamQuat = camera.quaternion.clone();
-        pendingPivot = findPivot(e.clientX, e.clientY);
-      }
+      // picking the pivot here is inert on its own — it only takes effect
+      // once an actual drag delta exists, so there's nothing to jump yet.
+      if(mode === "rot") pivot = findPivot(e.clientX, e.clientY) || target.clone();
     }
     else if(ids().length === 2){ mode = "multi"; var p = twoPointer(); lastDist = p.d; lastMid = p.m; }
   });
@@ -500,55 +520,28 @@ function applyCam(){
     if(!(e.pointerId in ptr)) return;
     ptr[e.pointerId] = pos(e);
     if(mode === "rot" && last){
-      // diagnostic brute force: whatever may have nudged the camera between
-      // pointerdown and this first move, force it back to exactly what it was
-      // at press time before doing anything else — this doesn't fix a root
-      // cause, it just proves whether the camera itself is what's moving.
-      if(downCamPos){
-        camera.position.copy(downCamPos);
-        camera.quaternion.copy(downCamQuat);
-        downCamPos = null; downCamQuat = null;
-      }
-      // the pivot swap itself happens here, right before the first delta of an
-      // actual drag is applied — never at pointerdown. This guarantees nothing
-      // on screen changes just from pressing down, no matter what: there is no
-      // code path left that can move the camera before real movement occurs.
-      if(pendingPivot) applyPendingPivot();
       var p = pos(e);
-      // near the poles (phi close to 0 or PI), horizontal drag visually does
-      // almost nothing — the camera is nearly on the vertical axis, so a wide
-      // swing in theta traces a tiny circle on screen. Without compensation,
-      // theta keeps accumulating at full speed while looking near-stationary,
-      // then "unloads" as a sudden, hard-to-predict swing the moment phi drifts
-      // back away from the pole. Scaling by sin(phi) (floored so it never goes
-      // fully dead) keeps the drag-to-visual-motion ratio roughly consistent
-      // across the whole range instead of just near the equator.
-      var azimuthScale = Math.max(Math.sin(sph.phi), 0.15);
-      sph.theta -= (p.x - last.x) * 0.007 * azimuthScale;
-      sph.phi   -= (p.y - last.y) * 0.007;
-      last = p; applyCam();
+      rotateAroundPivot(pivot, p.x - last.x, p.y - last.y);
+      last = p;
     } else if(mode === "pan" && last){
       var q = pos(e); pan(q.x - last.x, q.y - last.y); last = q; applyCam();
     } else if(mode === "multi"){
       var t = twoPointer();
-      sph.r *= lastDist / Math.max(1, t.d);
+      camR *= lastDist / Math.max(1, t.d);
       pan(t.m.x - lastMid.x, t.m.y - lastMid.y);
       lastDist = t.d; lastMid = t.m; applyCam();
     }
   });
   function up(e){
     delete ptr[e.pointerId];
-    if(ids().length===0){
-      mode=null; last=null; pendingPivot=null; downCamPos=null; downCamQuat=null;
-      pivotMarker.visible=false;
-    }
+    if(ids().length===0){ mode=null; last=null; pivot=null; pivotMarker.visible=false; }
     else if(ids().length===1){ mode="rot"; last=ptr[ids()[0]]; }
   }
   el.addEventListener("pointerup", up);
   el.addEventListener("pointercancel", up);
   el.addEventListener("contextmenu", function(e){ e.preventDefault(); });
   el.addEventListener("wheel", function(e){
-    e.preventDefault(); sph.r *= Math.pow(1.0016, e.deltaY); applyCam();
+    e.preventDefault(); camR *= Math.pow(1.0016, e.deltaY); applyCam();
   }, {passive:false});
   function twoPointer(){
     var k = ids(), a = ptr[k[0]], b = ptr[k[1]];
@@ -567,27 +560,10 @@ function applyCam(){
     pivotMarker.visible = true;
     return p;
   }
-  function applyPendingPivot(){
-    var p = pendingPivot; pendingPivot = null;
-    // re-derive sph from the camera's CURRENT position relative to the new
-    // target so the very next applyCam() call (which the caller makes right
-    // after, with the drag's actual delta) starts from an unchanged position —
-    // any visible motion comes only from the real pointer movement, not a snap.
-    var off = camera.position.clone().sub(p);
-    var rad = off.length();
-    if(rad > 1e-6){
-      sph.r = rad;
-      sph.phi = Math.acos(Math.max(-1, Math.min(1, off.y / rad)));
-      sph.theta = Math.atan2(off.x, off.z);
-    }
-    target.copy(p);
-  }
   function pan(dx, dy){
-    var s = sph.r * 0.0022;
-    var right = new THREE.Vector3(), up2 = new THREE.Vector3();
-    camera.updateMatrixWorld();
-    right.setFromMatrixColumn(camera.matrixWorld, 0);
-    up2.setFromMatrixColumn(camera.matrixWorld, 1);
+    var s = camR * 0.0022;
+    var right = new THREE.Vector3(1,0,0).applyQuaternion(camQuat);
+    var up2 = new THREE.Vector3(0,1,0).applyQuaternion(camQuat);
     target.addScaledVector(right, -dx*s).addScaledVector(up2, dy*s);
   }
 })();
@@ -1056,7 +1032,7 @@ function fitCamera(){
   var cx = (B.min[0]+B.max[0])/2, cy = (B.min[1]+B.max[1])/2, cz = (B.min[2]+B.max[2])/2;
   var d = Math.hypot(B.max[0]-B.min[0], B.max[1]-B.min[1], B.max[2]-B.min[2]) || 1;
   target.set(cx, cy, cz);
-  sph.r = d * 1.7;
+  camR = d * 1.7;
   camera.near = d/500; camera.far = d*100; camera.updateProjectionMatrix();
   grid.scale.setScalar(d/5);
   applyCam();
@@ -1660,27 +1636,41 @@ function axisLabelTex(text, css){
 })();
 
 function syncCube(){
-  cCam.position.set(
-    Math.sin(sph.phi) * Math.sin(sph.theta),
-    Math.cos(sph.phi),
-    Math.sin(sph.phi) * Math.cos(sph.theta)
-  ).multiplyScalar(6);
-  cCam.up.set(0, 1, 0);
-  cCam.lookAt(0, 0, 0);
+  cCam.position.copy(new THREE.Vector3(0, 0, 1).applyQuaternion(camQuat).multiplyScalar(6));
+  cCam.quaternion.copy(camQuat);
 }
 
 var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Builds an orientation quaternion for "camera sits in direction (theta,phi)
+// from target, facing back toward it, held level" — used only for the fixed
+// axis-aligned ViewCube snap targets, never for freehand dragging. `up` here
+// is the same analytically-perpendicular vector proven earlier: exactly
+// perpendicular to `back` for every theta and phi, including precisely at the
+// poles, so the basis never degenerates the way Object3D.lookAt() would.
+function quatFromSpherical(theta, phi){
+  var back = new THREE.Vector3(
+    Math.sin(phi)*Math.sin(theta), Math.cos(phi), Math.sin(phi)*Math.cos(theta)
+  );
+  var up = new THREE.Vector3(
+    -Math.cos(phi)*Math.sin(theta), Math.sin(phi), -Math.cos(phi)*Math.cos(theta)
+  );
+  var right = new THREE.Vector3().crossVectors(up, back).normalize();
+  up.crossVectors(back, right).normalize();
+  var m = new THREE.Matrix4().makeBasis(right, up, back);
+  return new THREE.Quaternion().setFromRotationMatrix(m);
+}
+
 function glideTo(theta, phi){
-  var t0 = sph.theta, p0 = sph.phi, dt = theta - t0;
-  while(dt > Math.PI) dt -= Math.PI*2;
-  while(dt < -Math.PI) dt += Math.PI*2;
-  var dp = phi - p0;
-  if(reduceMotion){ sph.theta = theta; sph.phi = phi; applyCam(); return; }
+  var qStart = camQuat.clone();
+  var qEnd = quatFromSpherical(theta, phi);
+  if(reduceMotion){ camQuat.copy(qEnd); applyCam(); return; }
   var t0ms = performance.now(), dur = 340;
   (function step(now){
     var k = Math.min(1, (now - t0ms) / dur);
     var e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2)/2;
-    sph.theta = t0 + dt*e; sph.phi = p0 + dp*e; applyCam();
+    camQuat.copy(qStart).slerp(qEnd, e);
+    applyCam();
     if(k < 1) requestAnimationFrame(step);
   })(t0ms);
 }
@@ -1699,9 +1689,11 @@ function glideTo(theta, phi){
     e.stopPropagation();
     if(!dragging && Math.hypot(e.clientX-down.x, e.clientY-down.y) > 4) dragging = true;
     if(dragging){
-      sph.theta -= (e.clientX - last.x) * 0.011;
-      sph.phi   -= (e.clientY - last.y) * 0.011;
-      applyCam();
+      // same rigid rotation as the main viewport, using target as the pivot —
+      // the cube widget has no model surface to pick a point on, so it always
+      // spins the current view around whatever the active pivot already is.
+      var dx = e.clientX - last.x, dy = e.clientY - last.y;
+      rotateAroundPivot(target, dx*1.57, dy*1.57);
     }
     last = {x:e.clientX, y:e.clientY};
   });
@@ -1732,9 +1724,16 @@ function glideTo(theta, phi){
     // means theta doesn't affect the camera position there at all. Computing a
     // fresh theta via atan2(0,0) would always target a fixed, arbitrary heading,
     // making every Top/Bottom click spin to face "north" on top of tilting to
-    // the pole. Keep the current heading instead: a pure tilt, no unwanted spin.
+    // the pole — so instead of that, snap to whichever quarter-turn (0/90/180/
+    // 270°) is closest to the current heading (read directly from camQuat,
+    // since free dragging no longer keeps a persistent theta anywhere). That
+    // keeps the resulting top-down/bottom-up view aligned with the model's
+    // X/Z axes rather than landing at whatever arbitrary angle the camera
+    // happened to be at.
     var isPole = Math.abs(v.x) < 1e-6 && Math.abs(v.z) < 1e-6;
-    var targetTheta = isPole ? sph.theta : Math.atan2(v.x, v.z);
+    var curBack = new THREE.Vector3(0,0,1).applyQuaternion(camQuat);
+    var curTheta = Math.atan2(curBack.x, curBack.z);
+    var targetTheta = isPole ? Math.round(curTheta / (Math.PI/2)) * (Math.PI/2) : Math.atan2(v.x, v.z);
     glideTo(targetTheta, Math.acos(Math.max(-1, Math.min(1, v.y))));
   }
 })();
