@@ -32,9 +32,11 @@
   #app{display:flex;height:100%;width:100%}
 
   /* ---------- viewport ---------- */
-  #stage{position:relative;flex:1;min-width:0;overflow:hidden;background:
+  #stage{position:relative;flex:1;min-width:0;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;background:
     radial-gradient(circle at 50% 38%, #ffffff 0%, #e3e7ec 100%);}
-  #stage canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #stage canvas{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   #drop{
     position:absolute;inset:0;display:none;place-items:center;
     background:rgba(46,123,184,.08);border:2px dashed var(--accent);
@@ -77,6 +79,7 @@
   }
   #drillCard.on{display:block}
   #drillCard .chk{font-size:12px}
+  #drillFlip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   .drow{display:grid;grid-template-columns:1fr 76px;align-items:center;gap:8px;margin-bottom:7px;font-size:12px}
   select{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
@@ -251,9 +254,11 @@
       <div class="drow"><span id="drillDepLbl">深度</span><input type="number" id="drillDep" step="0.1" value="10"></div>
       <label class="chk" style="margin:2px 0 8px"><input type="checkbox" id="drillSnapAxis"><span id="drillSnapAxisLbl">對齊最近 X/Y/Z 軸</span></label>
       <div class="stats" id="drillOut" style="margin-bottom:8px"></div>
-      <button id="drillGo" class="primary">壓出凹陷</button>
+      <div class="btns two">
+        <button id="drillFlip" title="反轉壓凹方向" aria-label="反轉壓凹方向" aria-pressed="false">⇅ 反轉方向</button>
+        <button id="drillGo" class="primary">壓出凹陷</button>
+      </div>
       <button id="drillClr" style="margin-top:6px">清除選點</button>
-      <p class="hint">移動既有頂點做出凹陷，不新增或刪除任何點與面，所以模型的封閉性與貼圖都不受影響。因為不新增幾何，做不出真正貫穿的孔洞；凹陷邊緣的形狀會受附近頂點疏密影響，不保證是正圓；深度若遠大於附近頂點間距，可能讓三角形自相交。</p>
     </div>
 
     <div id="tools" role="toolbar" aria-label="顯示工具">
@@ -453,6 +458,14 @@ var MEAS = [];
 /* ---- camera controls (hand-rolled orbit) ---- */
 var target = new THREE.Vector3();
 var sph = {r:6, theta:Math.PI*0.28, phi:Math.PI*0.38};
+var pivotMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 16, 12),
+  new THREE.MeshBasicMaterial({color:0xc23f0c, depthTest:false})
+);
+pivotMarker.visible = false;
+pivotMarker.renderOrder = 9;
+scene.add(pivotMarker);
+var pivotRay = new THREE.Raycaster();
 function applyCam(){
   sph.phi = Math.max(0.02, Math.min(Math.PI-0.02, sph.phi));
   sph.r = Math.max(0.02, sph.r);
@@ -466,19 +479,52 @@ function applyCam(){
 }
 (function(){
   var el = renderer.domElement, ptr = {}, mode = null, last = null, lastDist = 0, lastMid = null;
+  var pendingPivot = null;   // raycast hit stashed at pointerdown, applied on first move
+  var downCamPos = null, downCamQuat = null;   // exact camera state at the moment of pointerdown
   function pos(e){ return {x:e.clientX, y:e.clientY}; }
   function ids(){ return Object.keys(ptr); }
   el.addEventListener("pointerdown", function(e){
+    e.preventDefault();
     el.setPointerCapture(e.pointerId); ptr[e.pointerId] = pos(e);
-    if(ids().length === 1){ mode = (e.button===2 || e.shiftKey) ? "pan" : "rot"; last = pos(e); }
+    if(ids().length === 1){
+      mode = (e.button===2 || e.shiftKey) ? "pan" : "rot"; last = pos(e);
+      if(mode === "rot"){
+        downCamPos = camera.position.clone();
+        downCamQuat = camera.quaternion.clone();
+        pendingPivot = findPivot(e.clientX, e.clientY);
+      }
+    }
     else if(ids().length === 2){ mode = "multi"; var p = twoPointer(); lastDist = p.d; lastMid = p.m; }
   });
   el.addEventListener("pointermove", function(e){
     if(!(e.pointerId in ptr)) return;
     ptr[e.pointerId] = pos(e);
     if(mode === "rot" && last){
+      // diagnostic brute force: whatever may have nudged the camera between
+      // pointerdown and this first move, force it back to exactly what it was
+      // at press time before doing anything else — this doesn't fix a root
+      // cause, it just proves whether the camera itself is what's moving.
+      if(downCamPos){
+        camera.position.copy(downCamPos);
+        camera.quaternion.copy(downCamQuat);
+        downCamPos = null; downCamQuat = null;
+      }
+      // the pivot swap itself happens here, right before the first delta of an
+      // actual drag is applied — never at pointerdown. This guarantees nothing
+      // on screen changes just from pressing down, no matter what: there is no
+      // code path left that can move the camera before real movement occurs.
+      if(pendingPivot) applyPendingPivot();
       var p = pos(e);
-      sph.theta -= (p.x - last.x) * 0.007;
+      // near the poles (phi close to 0 or PI), horizontal drag visually does
+      // almost nothing — the camera is nearly on the vertical axis, so a wide
+      // swing in theta traces a tiny circle on screen. Without compensation,
+      // theta keeps accumulating at full speed while looking near-stationary,
+      // then "unloads" as a sudden, hard-to-predict swing the moment phi drifts
+      // back away from the pole. Scaling by sin(phi) (floored so it never goes
+      // fully dead) keeps the drag-to-visual-motion ratio roughly consistent
+      // across the whole range instead of just near the equator.
+      var azimuthScale = Math.max(Math.sin(sph.phi), 0.15);
+      sph.theta -= (p.x - last.x) * 0.007 * azimuthScale;
       sph.phi   -= (p.y - last.y) * 0.007;
       last = p; applyCam();
     } else if(mode === "pan" && last){
@@ -490,7 +536,14 @@ function applyCam(){
       lastDist = t.d; lastMid = t.m; applyCam();
     }
   });
-  function up(e){ delete ptr[e.pointerId]; if(ids().length===0){mode=null;last=null;} else if(ids().length===1){mode="rot"; last=ptr[ids()[0]];} }
+  function up(e){
+    delete ptr[e.pointerId];
+    if(ids().length===0){
+      mode=null; last=null; pendingPivot=null; downCamPos=null; downCamQuat=null;
+      pivotMarker.visible=false;
+    }
+    else if(ids().length===1){ mode="rot"; last=ptr[ids()[0]]; }
+  }
   el.addEventListener("pointerup", up);
   el.addEventListener("pointercancel", up);
   el.addEventListener("contextmenu", function(e){ e.preventDefault(); });
@@ -500,6 +553,34 @@ function applyCam(){
   function twoPointer(){
     var k = ids(), a = ptr[k[0]], b = ptr[k[1]];
     return {d:Math.hypot(a.x-b.x, a.y-b.y), m:{x:(a.x+b.x)/2, y:(a.y+b.y)/2}};
+  }
+  function findPivot(cx, cy){
+    if(!meshObj) return null;
+    var r = renderer.domElement.getBoundingClientRect();
+    var ndc = new THREE.Vector2(((cx-r.left)/r.width)*2-1, -((cy-r.top)/r.height)*2+1);
+    pivotRay.setFromCamera(ndc, camera);
+    var hits = pivotRay.intersectObject(meshObj, false);
+    if(!hits.length) return null;
+    var p = hits[0].point.clone();
+    pivotMarker.scale.setScalar(Math.max(DIAG*0.006, 1e-4));
+    pivotMarker.position.copy(p);
+    pivotMarker.visible = true;
+    return p;
+  }
+  function applyPendingPivot(){
+    var p = pendingPivot; pendingPivot = null;
+    // re-derive sph from the camera's CURRENT position relative to the new
+    // target so the very next applyCam() call (which the caller makes right
+    // after, with the drag's actual delta) starts from an unchanged position —
+    // any visible motion comes only from the real pointer movement, not a snap.
+    var off = camera.position.clone().sub(p);
+    var rad = off.length();
+    if(rad > 1e-6){
+      sph.r = rad;
+      sph.phi = Math.acos(Math.max(-1, Math.min(1, off.y / rad)));
+      sph.theta = Math.atan2(off.x, off.z);
+    }
+    target.copy(p);
   }
   function pan(dx, dy){
     var s = sph.r * 0.0022;
@@ -803,16 +884,24 @@ function fillHoles(M, newFaceIn){
 // already exist nearby rather than being a clean circle — on a sparse mesh the
 // indent can look faceted, and if the model's local vertex density is coarse
 // relative to the requested depth, neighbouring triangles can fold on themselves.
+var DENT_TAPER_DEG = 2;   // slight draft angle instead of a perfectly vertical wall
+
 function dentVertex(p, C, A, radius, depth){
   var wx = p[0]-C.x, wy = p[1]-C.y, wz = p[2]-C.z;
   var h = wx*A.x + wy*A.y + wz*A.z;
+  // bound along the axis too, not just perpendicular distance — otherwise a
+  // thin section of the model can get pushed on its far side as well, since
+  // radial distance alone doesn't know how deep the surface actually is here
+  if(h < -radius || h > depth + radius) return p;
   var rx = wx-A.x*h, ry = wy-A.y*h, rz = wz-A.z*h;
   var r = Math.sqrt(rx*rx+ry*ry+rz*rz);
   if(r >= radius) return p;
-  // smooth cosine bowl: full depth at the centre, tapering to zero exactly at
-  // the rim so the indent blends into the untouched surrounding surface
-  var k = (1 + Math.cos(Math.PI * (r/radius))) / 2;
-  var push = depth * k;
+  // near-cylindrical profile: a flat floor out to rBottom, then a straight
+  // (linear, not curved) tapered wall up to the rim — closer to a drilled hole
+  // than a smooth bowl, within what moving existing vertices can represent.
+  var rBottom = Math.max(0, radius - depth * Math.tan(DENT_TAPER_DEG * Math.PI/180));
+  var span = radius - rBottom;
+  var push = (r <= rBottom || span < 1e-9) ? depth : depth * (radius - r) / span;
   return [p[0] + A.x*push, p[1] + A.y*push, p[2] + A.z*push];
 }
 
@@ -1395,7 +1484,7 @@ function applyAxisSnapIfEnabled(){
 
 (function measureInput(){
   var el = renderer.domElement, down = null;
-  el.addEventListener("pointerdown", function(e){ down = {x:e.clientX, y:e.clientY, t:Date.now()}; });
+  el.addEventListener("pointerdown", function(e){ e.preventDefault(); down = {x:e.clientX, y:e.clientY, t:Date.now()}; });
   el.addEventListener("pointerup", function(e){
     if(!down) return;
     var moved = Math.hypot(e.clientX-down.x, e.clientY-down.y);
@@ -1639,7 +1728,14 @@ function glideTo(theta, phi){
     );
     if(v.lengthSq() === 0) return;
     v.normalize();
-    glideTo(Math.atan2(v.x, v.z), Math.acos(Math.max(-1, Math.min(1, v.y))));
+    // at the poles (straight up/down), azimuth has no visual meaning — sin(phi)=0
+    // means theta doesn't affect the camera position there at all. Computing a
+    // fresh theta via atan2(0,0) would always target a fixed, arbitrary heading,
+    // making every Top/Bottom click spin to face "north" on top of tilting to
+    // the pole. Keep the current heading instead: a pure tilt, no unwanted spin.
+    var isPole = Math.abs(v.x) < 1e-6 && Math.abs(v.z) < 1e-6;
+    var targetTheta = isPole ? sph.theta : Math.atan2(v.x, v.z);
+    glideTo(targetTheta, Math.acos(Math.max(-1, Math.min(1, v.y))));
   }
 })();
 
@@ -1701,7 +1797,7 @@ document.getElementById("yzSwap").addEventListener("click", function(){
 });
 
 /* ================= drill mode ================= */
-var drillOn = false, DRILL = null, DRILL_RAW = null, drillPreview = null;
+var drillOn = false, DRILL = null, DRILL_RAW = null, drillPreview = null, drillFlipped = false;
 
 function setDrillMode(on){
   drillOn = on;
@@ -1723,9 +1819,17 @@ function disposeDrillPreview(){
   drillPreview = null;
 }
 
+function effectiveDrillAxis(){
+  var a = DRILL.n.clone().negate().normalize();
+  if(drillFlipped) a.negate();
+  return a;
+}
+
 function clearDrill(){
   DRILL = null;
   DRILL_RAW = null;
+  drillFlipped = false;
+  document.getElementById("drillFlip").setAttribute("aria-pressed", "false");
   disposeDrillPreview();
   renderDrill();
 }
@@ -1753,7 +1857,7 @@ function renderDrill(){
   if(!DRILL) return;
 
   var q = drillParams();
-  var axis = DRILL.n.clone().negate();
+  var axis = effectiveDrillAxis();
   drillPreview = new THREE.Group();
 
   // marker: a red ring showing the footprint, plus a dot on the picked point
@@ -1775,36 +1879,36 @@ function renderDrill(){
   dot.renderOrder = 8;
   drillPreview.add(dot);
 
-  // bowl preview: matches the cosine falloff profile actually used, not a
-  // straight-walled cylinder — this method can only ever produce a smooth dent
+  // tapered-cylinder preview: matches the flat-floor + straight-wall profile
+  // actually used, so what you see is what the indent will look like
   if(q.dia > 0 && q.dep > 0){
-    var segs = 24, rings = 12, pos = [], idxs = [];
-    for(var ri=0; ri<=rings; ri++){
-      var rr = rad * ri/rings;
-      var kk = (1 + Math.cos(Math.PI * (ri/rings))) / 2;
-      var depthAt = q.dep * kk;
-      for(var si=0; si<=segs; si++){
-        var th = 2*Math.PI*si/segs;
-        pos.push(Math.cos(th)*rr, Math.sin(th)*rr, -depthAt);
-      }
+    var rTop = q.dia/2;
+    var rBottom = Math.max(0, rTop - q.dep * Math.tan(DENT_TAPER_DEG * Math.PI/180));
+    // local +Y maps to `axis` (into the surface, away from the pick point), so
+    // the WIDE radius (rTop) must go on local -Y to land at the pick point end,
+    // and the NARROW radius (rBottom) on local +Y to land at the deep floor —
+    // the reverse of the geometry's own Top/Bottom naming.
+    var body = new THREE.Mesh(
+      new THREE.CylinderGeometry(rBottom, rTop, q.dep, 40, 1, true),
+      new THREE.MeshBasicMaterial({color:0xc23f0c, transparent:true, opacity:.32,
+                                   side:THREE.DoubleSide, depthWrite:false})
+    );
+    body.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), axis);
+    body.position.copy(DRILL.p).addScaledVector(axis, q.dep/2);
+    body.renderOrder = 3;
+    drillPreview.add(body);
+
+    if(rBottom > 1e-6){
+      var floor = new THREE.Mesh(
+        new THREE.CircleGeometry(rBottom, 40),
+        new THREE.MeshBasicMaterial({color:0xc23f0c, transparent:true, opacity:.32,
+                                     side:THREE.DoubleSide, depthWrite:false})
+      );
+      floor.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), axis);
+      floor.position.copy(DRILL.p).addScaledVector(axis, q.dep);
+      floor.renderOrder = 3;
+      drillPreview.add(floor);
     }
-    for(var ri2=0; ri2<rings; ri2++){
-      for(var si2=0; si2<segs; si2++){
-        var a0=ri2*(segs+1)+si2, b0=a0+1, c0=a0+(segs+1), d0=c0+1;
-        idxs.push(a0,c0,b0, b0,c0,d0);
-      }
-    }
-    var bowlGeo = new THREE.BufferGeometry();
-    bowlGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    bowlGeo.setIndex(idxs);
-    bowlGeo.computeVertexNormals();
-    var bowl = new THREE.Mesh(bowlGeo, new THREE.MeshBasicMaterial({
-      color:0xc23f0c, transparent:true, opacity:.32, side:THREE.DoubleSide, depthWrite:false
-    }));
-    bowl.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), axis);
-    bowl.position.copy(DRILL.p);
-    bowl.renderOrder = 3;
-    drillPreview.add(bowl);
   }
   root.add(drillPreview);
 }
@@ -1814,6 +1918,11 @@ document.getElementById("tDrill").addEventListener("click", function(){
   setDrillMode(!drillOn);
 });
 document.getElementById("drillClr").addEventListener("click", clearDrill);
+document.getElementById("drillFlip").addEventListener("click", function(){
+  drillFlipped = !drillFlipped;
+  this.setAttribute("aria-pressed", drillFlipped ? "true" : "false");
+  renderDrill();
+});
 document.getElementById("drillSnapAxis").addEventListener("change", function(){
   applyAxisSnapIfEnabled();
   renderDrill();
@@ -1830,7 +1939,7 @@ document.getElementById("drillGo").addEventListener("click", function(){
   if(!(q.dep > 0)){ toast("深度要大於 0", true); return; }
 
   var W = bakedMesh();
-  var C = DRILL.p.clone(), A = DRILL.n.clone().negate().normalize();
+  var C = DRILL.p.clone(), A = effectiveDrillAxis();
   var res = dentMesh(W, C, A, q.dia/2, q.dep);
   if(!res.ok){ toast(res.why, true); return; }
 
