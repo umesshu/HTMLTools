@@ -1,3 +1,6 @@
+
+
+De倉 入倉銷售與出貨試算 · HTML
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -23,9 +26,9 @@
   .eyebrow .dot{width:6px;height:6px;background:var(--amber);border-radius:50%;display:inline-block;}
   h1{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(20px,3vw,28px);margin:10px 0 6px;letter-spacing:-.01em;}
   .sub{color:#b9c0cc;font-size:13.5px;max-width:760px;line-height:1.6;}
-
+ 
   .wrap{max-width:1180px;margin:0 auto;padding:22px 24px 0;}
-
+ 
   .tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--line);}
   .tab-btn{
     font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;
@@ -35,13 +38,13 @@
   .tab-btn.active{color:var(--ink);border-bottom-color:var(--amber-deep);}
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
-
+ 
   .card{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;}
   .card + .card{margin-top:18px;}
   .card h2{font-family:'Space Grotesk',sans-serif;font-size:15.5px;font-weight:600;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
   .card h2 .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--muted);border:1px solid var(--line);padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;}
   .card .desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.6;}
-
+ 
   .ptable{width:100%;border-collapse:collapse;font-size:12.5px;}
   .ptable th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line);}
   .ptable td{padding:6px 8px;border-bottom:1px solid var(--paper-2);vertical-align:middle;}
@@ -59,7 +62,7 @@
   .chev.open{transform:rotate(180deg);}
   .collapsible-body{display:none;margin-top:14px;}
   .collapsible-body.open{display:block;}
-
+ 
   label{display:block;font-size:12.5px;font-weight:600;color:var(--slate-2);margin:14px 0 6px;}
   label:first-of-type{margin-top:0;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
@@ -67,7 +70,7 @@
   select{font-family:'IBM Plex Sans',sans-serif;}
   input:focus,select:focus{outline:2px solid var(--amber);outline-offset:1px;background:var(--white);}
   .hint{font-size:11px;color:var(--muted);margin-top:4px;}
-
+ 
   .toggle-row{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
   .toggle-row h2{margin-bottom:0;}
   .switch{width:38px;height:22px;border-radius:20px;background:var(--line);position:relative;flex-shrink:0;transition:background .15s;}
@@ -76,15 +79,15 @@
   .switch.on::after{left:18px;}
   .fold{display:none;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);}
   .fold.open{display:block;}
-
+ 
   .warn-box{margin-top:12px;background:#fbeee9;border:1px solid #eec7ba;color:var(--warn);font-size:12.5px;padding:10px 12px;border-radius:6px;line-height:1.6;display:none;}
   .warn-box.show{display:block;}
-
+ 
   .qtygrid{display:grid;grid-template-columns:1fr 100px 100px;gap:8px 12px;align-items:center;}
   .qtygrid .hdr{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px;}
   .qtygrid .pn{font-size:12.5px;font-weight:600;padding:6px 0;}
   .qtygrid input{padding:6px 8px;font-size:12.5px;}
-
+ 
   .summary{background:var(--slate);color:var(--paper);border-radius:10px;padding:24px;position:relative;overflow:hidden;}
   .summary-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
   .summary-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#9aa4b3;}
@@ -92,7 +95,7 @@
   .summary-total .cur{font-size:18px;color:#c9cfd8;margin-right:4px;font-weight:500;}
   .summary-sub{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa4b3;margin-top:8px;}
   .flag{font-size:13px;color:var(--paper);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:20px;font-family:'IBM Plex Mono',monospace;}
-
+ 
   table.breakdown{width:100%;border-collapse:collapse;margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
   table.breakdown th{text-align:left;color:#9aa4b3;font-weight:500;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.15);}
   table.breakdown td{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;}
@@ -100,7 +103,7 @@
   table.breakdown tr.section td{padding-top:14px;color:var(--amber);font-weight:600;border-bottom:none;font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;}
   table.breakdown tr.total td{border-top:1px solid rgba(255,255,255,.25);border-bottom:none;padding-top:12px;font-size:13.5px;color:var(--white);font-weight:700;}
   .row-note{color:#7d8698;font-size:10.5px;font-weight:400;margin-top:2px;}
-
+ 
   .compare{margin-top:0;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;}
   .compare h2{font-family:'Space Grotesk',sans-serif;font-size:15.5px;margin:0 0 4px;}
   .compare .desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
@@ -123,30 +126,30 @@
   .compare-box.old .compare-subtotal span{color:var(--warn);}
   .compare-box.new .compare-subtotal span{color:var(--ok);}
   .compare-delta{margin-top:16px;text-align:center;font-size:13px;color:var(--muted);padding:12px;background:var(--paper);border-radius:8px;}
-
+ 
   .grid2{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start;}
   @media (max-width:900px){.grid2{grid-template-columns:1fr;}}
-
+ 
   .batch-table{width:100%;border-collapse:collapse;font-size:12px;font-family:'IBM Plex Mono',monospace;}
   .batch-table th{text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;padding:8px 6px;border-bottom:1px solid var(--line);}
   .batch-table th:first-child{text-align:left;}
   .batch-table td{padding:9px 6px;border-bottom:1px solid var(--paper-2);text-align:right;}
   .batch-table td:first-child{text-align:left;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:12.5px;}
   .batch-table tr.grand td{border-top:2px solid var(--ink);font-weight:700;padding-top:12px;}
-
+ 
   .btn-mini{
     font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-2);
     background:var(--paper-2);border:1px solid var(--line);border-radius:6px;
     padding:6px 10px;cursor:pointer;
   }
   .btn-mini:hover{background:var(--line);}
-
+ 
   footer{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:11.5px;color:var(--muted);line-height:1.7;}
   footer b{color:var(--slate-2);}
 </style>
 </head>
 <body>
-
+ 
 <div class="topbar">
   <div class="topbar-inner">
     <div class="eyebrow"><span class="dot"></span>SILENCE CORNER · LOGISTICS DESK</div>
@@ -154,9 +157,9 @@
     <div class="sub">以下方「商品資料表」的重量/尺寸為基礎，分別試算「整批入倉到全部賣完」的成本與時間，以及「單筆訂單出貨」的實際運費。所有商品規格皆可手動修改。</div>
   </div>
 </div>
-
+ 
 <div class="wrap">
-
+ 
   <div class="card">
     <div class="collapsible-head" id="pmHead">
       <h2>商品資料表 <span class="tag">已確認 · 固定值</span></h2>
@@ -171,12 +174,12 @@
       </table>
     </div>
   </div>
-
+ 
   <div class="tabs">
     <button class="tab-btn active" data-tab="batch">整批入倉銷售規劃</button>
     <button class="tab-btn" data-tab="single">個別出貨運費試算</button>
   </div>
-
+ 
   <div class="tab-panel active" id="tab-batch">
     <div class="grid2">
       <div class="card">
@@ -186,7 +189,7 @@
           <div class="hdr">商品</div><div class="hdr" style="text-align:right">寄倉數量</div><div class="hdr" style="text-align:right">預估每日銷量</div>
         </div>
       </div>
-
+ 
       <div>
         <div class="summary">
           <div class="summary-top">
@@ -198,7 +201,7 @@
             <div class="flag" id="batchQtyFlag">共 0 件</div>
           </div>
         </div>
-
+ 
         <div class="card">
           <h2>各商品明細</h2>
           <p class="desc">「售完天數」= 寄倉數量 ÷ 預估每日銷量（以逐日賣出模擬）；倉儲費已依商品逐日賣出、動態遞減庫存量計算，而非整批固定天數概估。</p>
@@ -217,7 +220,7 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="tab-panel" id="tab-single">
     <div class="grid2">
       <div>
@@ -228,12 +231,12 @@
             <div class="hdr">商品</div><div class="hdr" style="text-align:right">數量</div><div class="hdr"></div>
           </div>
         </div>
-
+ 
         <div class="card">
           <h2>目的地與包裝 <span class="tag">必填</span></h2>
           <label>目的地國家</label>
           <select id="s_country"></select>
-
+ 
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
             <label style="margin:0;">實際打包尺寸(cm)</label>
             <button class="btn-mini" id="suggestBtn" type="button">依商品估算建議值</button>
@@ -244,10 +247,10 @@
             <input type="number" id="s_H" placeholder="高" min="0" step="0.1">
           </div>
           <div class="hint" id="s_volHint">尚未計算</div>
-
+ 
           <div class="warn-box" id="s_warnBox"></div>
         </div>
-
+ 
         <div class="card">
           <div class="toggle-row" id="s_whToggleRow">
             <h2>入倉 / 倉儲成本 <span class="tag">選填</span></h2>
@@ -260,7 +263,7 @@
             <div class="hint">套用到本訂單內所有商品；前 14 天免費，之後依 CBM×天數 級距計費</div>
           </div>
         </div>
-
+ 
         <div class="card">
           <div class="toggle-row" id="s_vasToggleRow">
             <h2>加值服務 <span class="tag">選填</span></h2>
@@ -275,17 +278,17 @@
           </div>
         </div>
       </div>
-
+ 
       <div>
         <div class="compare">
           <h2>與台灣直送比較</h2>
           <p class="desc">比較的是「買家實際負擔」的費用。左側 FedEx 直送的關稅與 IOSS 稅金已依此筆訂單的商品內容自動計算，不需手動輸入；右側 DE 倉是境內 OSS 銷售，不會再產生進口關稅。</p>
-
+ 
           <div class="compare-line" style="margin-bottom:4px;">
             <label class="cl-label">EUR → USD 匯率<span class="cl-note">用於換算 €3 關稅</span></label>
             <input type="number" id="s_fxRate" step="0.001" value="1.165">
           </div>
-
+ 
           <div class="compare-grid">
             <div class="compare-box old">
               <div class="k">現行 · 台灣 FedEx 直送</div>
@@ -334,17 +337,17 @@
       </div>
     </div>
   </div>
-
+ 
   <footer>
     <b>資料來源</b>：商品重量/尺寸取自 silencecorner.net 各商品頁「Product Specification」；未公布欄位以估計值標示。倉儲/出入庫費率取自 Return Help 報價表「正貨倉服務」頁籤；DHL 跨國運費取自「出庫運費 - DE_DHL 跨國」頁籤，幣別均為 USD。<br>
     <b>整批入倉銷售規劃</b>的假設：商品同一天全數到貨、之後以固定日銷量勻速賣出（先進先出），倉儲費依「每件商品實際被賣出前存放的天數」逐一計算後加總，而非用整批固定天數概估——這樣比較貼近實際會遞減的庫存量。<br>
     <b>未涵蓋</b>：台灣至德國倉的頭程運費、DHL 條件性附加費（超尺寸 Bulky Fee $29、投遞失敗 $30、地址不清路由費 $0.68、重量申報錯誤 $2.75 等）、實際 VAT 申報處理，請另與 Return Help 或會計師確認。
   </footer>
 </div>
-
+ 
 <script>
 const DHL = {"countries": ["Poland", "Austria", "Bulgaria", "Romania", "Lithuania", "Cyprus", "Belgium", "Netherlands", "Italy", "Spain", "Portugal", "Luxembourg", "Czech Republic", "Denmark", "France", "Slovakia", "Slovenia", "Hungary", "Ireland", "Estonia", "Greece", "Finland", "Croatia", "Latvia", "Malta", "Sweden"], "maxLength": [150, 200, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150], "maxLengthGirth": [300, 360, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300], "maxWeightLabel": ["0-31.5kg", "0-31.5kg", "0-31.5kg", "0-31.5kg", "0-31.5kg", "0-31.5kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-30kg", "0-20kg"], "brackets": [[1, 1000, 20.4, 21.1, 23.1, 23.1, 23.1, 30.3, 20.4, 20.4, 20.4, 20.4, 20.4, 21.1, 21.1, 21.1, 21.1, 22.4, 22.4, 22.4, 23.1, 23.1, 23.1, 23.1, 23.1, 23.1, 22.3, 22.4], [1001, 2000, 21.4, 22.5, 25.1, 25.1, 25.1, 34.8, 21.4, 21.4, 21.4, 21.4, 21.4, 22.5, 22.5, 22.5, 22.5, 24, 24, 24, 25.1, 25.1, 25.1, 25.1, 25.1, 25.1, 26.1, 24], [2001, 3000, 22.4, 23.9, 27.1, 27.1, 27.1, 39.2, 22.4, 22.4, 22.4, 22.4, 22.4, 23.9, 23.9, 23.9, 23.9, 25.6, 25.6, 25.6, 27.1, 27.1, 27.1, 27.1, 27.1, 27.1, 29.8, 25.6], [3001, 4000, 23.4, 25.3, 29.1, 29.1, 29.1, 43.7, 23.4, 23.4, 23.4, 23.4, 23.4, 25.3, 25.3, 25.3, 25.3, 27.2, 27.2, 27.2, 29.1, 29.1, 29.1, 29.1, 29.1, 29.1, 33.5, 27.2], [4001, 5000, 24.4, 26.7, 31.1, 31.1, 31.1, 48.2, 24.4, 24.4, 24.4, 24.4, 24.4, 26.7, 26.7, 26.7, 26.7, 28.8, 28.8, 28.8, 31.1, 31.1, 31.1, 31.1, 31.1, 31.1, 37.2, 28.8], [5001, 6000, 25.4, 28.1, 33.1, 33.1, 33.1, 52.6, 25.4, 25.4, 25.4, 25.4, 25.4, 28.1, 28.1, 28.1, 28.1, 30.4, 30.4, 30.4, 33.1, 33.1, 33.1, 33.1, 33.1, 33.1, 40.9, 30.4], [6001, 7000, 26.4, 29.5, 35.1, 35.1, 35.1, 57.1, 26.4, 26.4, 26.4, 26.4, 26.4, 29.5, 29.5, 29.5, 29.5, 32, 32, 32, 35.1, 35.1, 35.1, 35.1, 35.1, 35.1, 44.6, 32], [7001, 8000, 27.4, 30.9, 37.1, 37.1, 37.1, 61.6, 27.4, 27.4, 27.4, 27.4, 27.4, 30.9, 30.9, 30.9, 30.9, 33.6, 33.6, 33.6, 37.1, 37.1, 37.1, 37.1, 37.1, 37.1, 48.3, 33.6], [8001, 9000, 28.4, 32.3, 39.1, 39.1, 39.1, 66, 28.4, 28.4, 28.4, 28.4, 28.4, 32.3, 32.3, 32.3, 32.3, 35.2, 35.2, 35.2, 39.1, 39.1, 39.1, 39.1, 39.1, 39.1, 52, 35.2], [9001, 10000, 29.4, 33.7, 41.1, 41.1, 41.1, 70.5, 29.4, 29.4, 29.4, 29.4, 29.4, 33.7, 33.7, 33.7, 33.7, 36.8, 36.8, 36.8, 41.1, 41.1, 41.1, 41.1, 41.1, 41.1, 55.7, 36.8], [10001, 11000, 30.4, 35.1, 43.1, 43.1, 43.1, 75, 30.4, 30.4, 30.4, 30.4, 30.4, 35.1, 35.1, 35.1, 35.1, 38.4, 38.4, 38.4, 43.1, 43.1, 43.1, 43.1, 43.1, 43.1, 59.4, 38.4], [11001, 12000, 31.4, 36.5, 45.1, 45.1, 45.1, 79.4, 31.4, 31.4, 31.4, 31.4, 31.4, 36.5, 36.5, 36.5, 36.5, 40, 40, 40, 45.1, 45.1, 45.1, 45.1, 45.1, 45.1, 63.1, 40], [12001, 13000, 32.4, 37.9, 47.1, 47.1, 47.1, 83.9, 32.4, 32.4, 32.4, 32.4, 32.4, 37.9, 37.9, 37.9, 37.9, 41.6, 41.6, 41.6, 47.1, 47.1, 47.1, 47.1, 47.1, 47.1, 66.8, 41.6], [13001, 14000, 33.4, 39.3, 49.1, 49.1, 49.1, 88.4, 33.4, 33.4, 33.4, 33.4, 33.4, 39.3, 39.3, 39.3, 39.3, 43.2, 43.2, 43.2, 49.1, 49.1, 49.1, 49.1, 49.1, 49.1, 70.5, 43.2], [14001, 15000, 34.4, 40.7, 51.1, 51.1, 51.1, 92.8, 34.4, 34.4, 34.4, 34.4, 34.4, 40.7, 40.7, 40.7, 40.7, 44.8, 44.8, 44.8, 51.1, 51.1, 51.1, 51.1, 51.1, 51.1, 74.2, 44.8], [15001, 16000, 35.4, 42.1, 53.1, 53.1, 53.1, 97.3, 35.4, 35.4, 35.4, 35.4, 35.4, 42.1, 42.1, 42.1, 42.1, 46.4, 46.4, 46.4, 53.1, 53.1, 53.1, 53.1, 53.1, 53.1, 78, 46.4], [16001, 17000, 36.4, 43.5, 55.1, 55.1, 55.1, 101.7, 36.4, 36.4, 36.4, 36.4, 36.4, 43.5, 43.5, 43.5, 43.5, 48, 48, 48, 55.1, 55.1, 55.1, 55.1, 55.1, 55.1, 81.7, 48], [17001, 18000, 37.4, 44.9, 57.1, 57.1, 57.1, 106.2, 37.4, 37.4, 37.4, 37.4, 37.4, 44.9, 44.9, 44.9, 44.9, 49.6, 49.6, 49.6, 57.1, 57.1, 57.1, 57.1, 57.1, 57.1, 85.4, 49.6], [18001, 19000, 38.4, 46.3, 59.1, 59.1, 59.1, 110.7, 38.4, 38.4, 38.4, 38.4, 38.4, 46.3, 46.3, 46.3, 46.3, 51.2, 51.2, 51.2, 59.1, 59.1, 59.1, 59.1, 59.1, 59.1, 89.1, 51.2], [19001, 20000, 39.4, 47.7, 61.1, 61.1, 61.1, 115.1, 39.4, 39.4, 39.4, 39.4, 39.4, 47.7, 47.7, 47.7, 47.7, 52.8, 52.8, 52.8, 61.1, 61.1, 61.1, 61.1, 61.1, 61.1, 92.8, 52.8], [20001, 21000, 40.4, 49.1, 63.1, 63.1, 63.1, 119.6, 40.4, 40.4, 40.4, 40.4, 40.4, 49.1, 49.1, 49.1, 49.1, 54.4, 54.4, 54.4, 63.1, 63.1, 63.1, 63.1, 63.1, 63.1, 96.5, null], [21001, 22000, 41.4, 50.5, 65.1, 65.1, 65.1, 124.1, 41.4, 41.4, 41.4, 41.4, 41.4, 50.5, 50.5, 50.5, 50.5, 56, 56, 56, 65.1, 65.1, 65.1, 65.1, 65.1, 65.1, 100.2, null], [22001, 23000, 42.4, 51.9, 67.1, 67.1, 67.1, 128.5, 42.4, 42.4, 42.4, 42.4, 42.4, 51.9, 51.9, 51.9, 51.9, 57.6, 57.6, 57.6, 67.1, 67.1, 67.1, 67.1, 67.1, 67.1, 103.9, null], [23001, 24000, 43.4, 53.3, 69.1, 69.1, 69.1, 133, 43.4, 43.4, 43.4, 43.4, 43.4, 53.3, 53.3, 53.3, 53.3, 59.2, 59.2, 59.2, 69.1, 69.1, 69.1, 69.1, 69.1, 69.1, 107.6, null], [24001, 25000, 44.4, 54.7, 71.1, 71.1, 71.1, 137.5, 44.4, 44.4, 44.4, 44.4, 44.4, 54.7, 54.7, 54.7, 54.7, 60.8, 60.8, 60.8, 71.1, 71.1, 71.1, 71.1, 71.1, 71.1, 111.3, null], [25001, 26000, 45.4, 56.1, 73.1, 73.1, 73.1, 141.9, 45.4, 45.4, 45.4, 45.4, 45.4, 56.1, 56.1, 56.1, 56.1, 62.4, 62.4, 62.4, 73.1, 73.1, 73.1, 73.1, 73.1, 73.1, 115, null], [26001, 27000, 46.4, 57.5, 75.1, 75.1, 75.1, 146.4, 46.4, 46.4, 46.4, 46.4, 46.4, 57.5, 57.5, 57.5, 57.5, 64, 64, 64, 75.1, 75.1, 75.1, 75.1, 75.1, 75.1, 118.7, null], [27001, 28000, 47.4, 58.9, 77.1, 77.1, 77.1, 150.9, 47.4, 47.4, 47.4, 47.4, 47.4, 58.9, 58.9, 58.9, 58.9, 65.6, 65.6, 65.6, 77.1, 77.1, 77.1, 77.1, 77.1, 77.1, 122.4, null], [28001, 29000, 48.4, 60.3, 79.1, 79.1, 79.1, 155.3, 48.4, 48.4, 48.4, 48.4, 48.4, 60.3, 60.3, 60.3, 60.3, 67.2, 67.2, 67.2, 79.1, 79.1, 79.1, 79.1, 79.1, 79.1, 126.2, null], [29001, 30000, 49.4, 61.7, 81.1, 81.1, 81.1, 159.8, 49.4, 49.4, 49.4, 49.4, 49.4, 61.7, 61.7, 61.7, 61.7, 68.8, 68.8, 68.8, 81.1, 81.1, 81.1, 81.1, 81.1, 81.1, 129.9, null], [30001, 31500, 50.4, 63.1, 83.1, 83.1, 83.1, 166.5, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]]};
-
+ 
 const SKU_IN = [
   {max:1,price:0.35},{max:2,price:0.45},{max:5,price:0.60},{max:10,price:0.70},
   {max:20,price:1.20},{max:30,price:1.35},{max:Infinity,perKg:0.16}
@@ -356,7 +359,7 @@ const SKU_OUT = [
 const STORAGE = [
   {from:1,to:14,rate:0.00},{from:15,to:90,rate:0.55},{from:91,to:360,rate:1.05},{from:361,to:Infinity,rate:3.50}
 ];
-
+ 
 const PRODUCTS = [
   {key:'atoll_scd',    name:'ATOLL S/C/D',        weight:108, L:9.21, W:10.32, H:9.97,  price:54.57,  hsCode:'9006.91', editable:[]},
   {key:'atoll_x',      name:'ATOLL X/X+',         weight:170, L:10.4, W:10.9,  H:12.5,  price:114.00, hsCode:'9006.91', editable:[]},
@@ -366,14 +369,15 @@ const PRODUCTS = [
   {key:'pistrapsport', name:'pi Strap SPORT',     weight:244, L:20,   W:15,    H:6,     price:65.90,  hsCode:'9006.91', editable:[]},
   {key:'extplate',     name:'Extended Plate',     weight:54,  L:3.6,  W:7.6,   H:11.0,  price:18.00,  hsCode:'9006.91', editable:[]},
   {key:'heiplate',     name:'Heightening Plate',  weight:39,  L:3.6,  W:7.6,   H:11.0,  price:16.00,  hsCode:'9006.91', editable:[]},
+  {key:'custom',       name:'自訂商品',            weight:100, L:10,   W:10,    H:10,    price:0,      hsCode:'',        editable:['name','weight','L','W','H','price','hsCode']},
 ];
-
+ 
 // 標準 VAT 稅率（2026），順序對齊 DHL.countries
 const VAT_RATES = [0.23, 0.20, 0.20, 0.21, 0.21, 0.19, 0.21, 0.21, 0.22, 0.21, 0.23, 0.17, 0.21, 0.25, 0.20, 0.23, 0.22, 0.27, 0.23, 0.24, 0.24, 0.255, 0.25, 0.21, 0.18, 0.25];
 const EU_DUTY_EUR = 3.00; // 2026/7/1 起，每個稅則分類(HS code)固定 €3 關稅（消費值 <= €150）
-
+ 
 const fmt = n => (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-
+ 
 function lookupDHL(countryIdx, chargeableGrams){
   for(const b of DHL.brackets){
     if(chargeableGrams >= b[0] && chargeableGrams <= b[1]){
@@ -402,7 +406,7 @@ function storageFee(cbm, days){
   return total;
 }
 function unitCBM(L,W,H){ return Math.max(0.001,(L*W*H)/1000000); }
-
+ 
 const ptableBody = document.getElementById('ptableBody');
 function pCell(p, idx, field, step, isText){
   const isEditable = p.editable.indexOf(field)>-1;
@@ -414,8 +418,11 @@ function pCell(p, idx, field, step, isText){
 }
 PRODUCTS.forEach((p, idx)=>{
   const tr = document.createElement('tr');
+  const nameCell = p.editable.indexOf('name')>-1
+    ? '<input type="text" data-idx="'+idx+'" data-field="name" value="'+p.name+'" style="font-weight:600;">'
+    : '<span class="pname">'+p.name+'</span>';
   tr.innerHTML =
-    '<td><span class="pname">'+p.name+'</span></td>'+
+    '<td>'+nameCell+'</td>'+
     '<td>'+pCell(p, idx, 'weight', '0.1')+'</td>'+
     '<td>'+pCell(p, idx, 'L', '0.01')+'</td>'+
     '<td>'+pCell(p, idx, 'W', '0.01')+'</td>'+
@@ -428,15 +435,18 @@ ptableBody.addEventListener('input', e=>{
   const t = e.target;
   if(t.tagName!=='INPUT') return;
   const idx = parseInt(t.dataset.idx), field = t.dataset.field;
-  PRODUCTS[idx][field] = field==='hsCode' ? t.value.trim() : (parseFloat(t.value)||0);
+  PRODUCTS[idx][field] = (field==='hsCode' || field==='name') ? t.value : (parseFloat(t.value)||0);
+  if(field==='name'){
+    document.querySelectorAll('[data-name-idx="'+idx+'"]').forEach(function(el){ el.textContent = t.value; });
+  }
   calcBatch(); calcSingle();
 });
-
+ 
 document.getElementById('pmHead').addEventListener('click', ()=>{
   document.getElementById('pmBody').classList.toggle('open');
   document.getElementById('pmChev').classList.toggle('open');
 });
-
+ 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -445,19 +455,19 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
   });
 });
-
+ 
 const batchInputGrid = document.getElementById('batchInputGrid');
 PRODUCTS.forEach((p, idx)=>{
   const row = document.createElement('div');
   row.style.display='contents';
   row.innerHTML =
-    '<div class="pn" style="grid-column:1;">'+p.name+'</div>'+
+    '<div class="pn" data-name-idx="'+idx+'" style="grid-column:1;">'+p.name+'</div>'+
     '<input type="number" class="b-qty" data-idx="'+idx+'" value="0" min="0" step="1" style="grid-column:2;">'+
     '<input type="number" class="b-rate" data-idx="'+idx+'" value="0" min="0" step="0.1" style="grid-column:3;">';
   batchInputGrid.appendChild(row);
 });
 batchInputGrid.addEventListener('input', calcBatch);
-
+ 
 function batchStorageCost(cbm, qty, dailyRate){
   if(dailyRate<=0 || qty<=0) return {cost:0, sellOutDay: qty>0 ? Infinity : 0};
   let remaining = qty, day=0, totalCost=0;
@@ -470,34 +480,34 @@ function batchStorageCost(cbm, qty, dailyRate){
   }
   return {cost: totalCost, sellOutDay: remaining>1e-9 ? Infinity : day};
 }
-
+ 
 function calcBatch(){
   const tbody = document.getElementById('batchTableBody');
   tbody.innerHTML = '';
   let grandInbound=0, grandOutbound=0, grandStorage=0, grandQty=0;
   let maxSellOutDay = 0;
   let anyInfinite = false;
-
+ 
   PRODUCTS.forEach((p, idx)=>{
     const qtyInput = batchInputGrid.querySelector('.b-qty[data-idx="'+idx+'"]');
     const rateInput = batchInputGrid.querySelector('.b-rate[data-idx="'+idx+'"]');
     const qty = parseFloat(qtyInput.value)||0;
     const rate = parseFloat(rateInput.value)||0;
     if(qty<=0) return;
-
+ 
     grandQty += qty;
     const weightKg = p.weight/1000;
     const cbm = unitCBM(p.L,p.W,p.H);
-
+ 
     const inbound = skuFee(SKU_IN, weightKg) * qty;
     const outbound = skuFee(SKU_OUT, weightKg) * qty;
     const res = batchStorageCost(cbm, qty, rate);
     const storageCost = res.cost, sellOutDay = res.sellOutDay;
-
+ 
     grandInbound += inbound; grandOutbound += outbound; grandStorage += storageCost;
     if(sellOutDay === Infinity){ anyInfinite = true; }
     else if(sellOutDay > maxSellOutDay){ maxSellOutDay = sellOutDay; }
-
+ 
     const subtotal = inbound + outbound + storageCost;
     const tr = document.createElement('tr');
     tr.innerHTML =
@@ -510,7 +520,7 @@ function calcBatch(){
       '<td style="font-weight:700;">'+fmt(subtotal)+'</td>';
     tbody.appendChild(tr);
   });
-
+ 
   const grandTotal = grandInbound+grandOutbound+grandStorage;
   const grandTr = document.createElement('tr');
   grandTr.className='grand';
@@ -518,26 +528,26 @@ function calcBatch(){
     '<td>合計</td><td>'+grandQty+'</td><td>'+(anyInfinite?'部分商品未設定銷量':(maxSellOutDay||'—')+' 天')+'</td>'+
     '<td>'+fmt(grandInbound)+'</td><td>'+fmt(grandOutbound)+'</td><td>'+fmt(grandStorage)+'</td><td>'+fmt(grandTotal)+'</td>';
   tbody.appendChild(grandTr);
-
+ 
   document.getElementById('batchTotalOut').textContent = fmt(grandTotal);
   document.getElementById('batchQtyFlag').textContent = '共 '+grandQty+' 件';
   document.getElementById('batchTimeLine').textContent = grandQty===0
     ? '請輸入寄倉數量與預估每日銷量'
     : (anyInfinite ? '部分商品尚未設定每日銷量，無法估算全數售完天數' : '預估全部售完約需 '+maxSellOutDay+' 天（以最慢賣完的商品為準）');
 }
-
+ 
 const singleInputGrid = document.getElementById('singleInputGrid');
 PRODUCTS.forEach((p, idx)=>{
   const row = document.createElement('div');
   row.style.display='contents';
   row.innerHTML =
-    '<div class="pn" style="grid-column:1;">'+p.name+'</div>'+
+    '<div class="pn" data-name-idx="'+idx+'" style="grid-column:1;">'+p.name+'</div>'+
     '<input type="number" class="s-qty" data-idx="'+idx+'" value="0" min="0" step="1" style="grid-column:2;">'+
     '<div style="grid-column:3;"></div>';
   singleInputGrid.appendChild(row);
 });
 singleInputGrid.addEventListener('input', ()=>{ calcSingle(); });
-
+ 
 const s_countrySel = document.getElementById('s_country');
 DHL.countries.forEach((c,i)=>{
   const opt = document.createElement('option');
@@ -545,7 +555,7 @@ DHL.countries.forEach((c,i)=>{
   s_countrySel.appendChild(opt);
 });
 s_countrySel.addEventListener('change', calcSingle);
-
+ 
 // ---- 窮舉法估算打包尺寸：以「趨近正立方體、避免長柱形」為目標 ----
 function permutations3(arr){
   const result=[];
@@ -560,7 +570,7 @@ function permutations3(arr){
   return result;
 }
 const AXIS_PERMS = permutations3([0,1,2]);
-
+ 
 // 針對單一商品：窮舉排列方式（nx 排 × ny 排 × nz 層），
 // 找出容納 qty 件、且長寬高比例最接近正立方體(避免長柱形)的堆疊箱
 function bestSubBlock(qty, l, w, h){
@@ -587,7 +597,7 @@ function bestSubBlock(qty, l, w, h){
   }
   return best;
 }
-
+ 
 // 把每個商品的子箱依序堆疊組合成一個外箱：每一步窮舉「往哪一軸延伸」
 // 以及子箱的 6 種擺放方向，選出讓外箱最接近正立方體的組合
 function combineBlocks(blocks){
@@ -615,12 +625,12 @@ function combineBlocks(blocks){
   }
   return current;
 }
-
+ 
 function suggestPackingDims(lines){
   const blocks = lines.map(function(line){ return bestSubBlock(line.qty, line.p.L, line.p.W, line.p.H); });
   return combineBlocks(blocks);
 }
-
+ 
 document.getElementById('suggestBtn').addEventListener('click', ()=>{
   const totals = getSingleTotals();
   if(totals.lines.length===0){ return; }
@@ -630,11 +640,11 @@ document.getElementById('suggestBtn').addEventListener('click', ()=>{
   document.getElementById('s_H').value = dims[2].toFixed(1);
   calcSingle();
 });
-
+ 
 ['s_L','s_W','s_H'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcSingle);
 });
-
+ 
 let s_whOn=false, s_vasOn=false;
 const s_whSwitch=document.getElementById('s_whSwitch'), s_whFold=document.getElementById('s_whFold');
 const s_vasSwitch=document.getElementById('s_vasSwitch'), s_vasFold=document.getElementById('s_vasFold');
@@ -647,7 +657,7 @@ document.getElementById('s_vasToggleRow').addEventListener('click', ()=>{ s_vasO
 ['s_fedexShip','s_fedexAdvFee','s_fxRate','s_deBoxCost'].forEach(id=>{
   document.getElementById(id).addEventListener('input', updateCompare);
 });
-
+ 
 function getSingleTotals(){
   let totalWeightG=0, totalVolume=0, totalQty=0, declaredValue=0;
   const lines = [];
@@ -663,7 +673,7 @@ function getSingleTotals(){
   });
   return {totalWeightG:totalWeightG, totalVolume:totalVolume, totalQty:totalQty, declaredValue:declaredValue, lines:lines};
 }
-
+ 
 function calcSingle(){
   const totals = getSingleTotals();
   const totalWeightG = totals.totalWeightG, totalQty = totals.totalQty, lines = totals.lines;
@@ -671,16 +681,16 @@ function calcSingle(){
   const L = parseFloat(document.getElementById('s_L').value)||0;
   const W = parseFloat(document.getElementById('s_W').value)||0;
   const H = parseFloat(document.getElementById('s_H').value)||0;
-
+ 
   const volKg = (L*W*H)/5000;
   document.getElementById('s_volHint').textContent = totalQty===0
     ? '請先輸入商品數量'
     : '包裹實重 '+(totalWeightG/1000).toFixed(2)+' kg・材積重 '+volKg.toFixed(2)+' kg（取兩者較大值計費）';
-
+ 
   const chargeableG = Math.max(totalWeightG, volKg*1000);
   const dhl = lookupDHL(countryIdx, chargeableG);
   const dhlPrice = dhl.price===null?0:dhl.price;
-
+ 
   const warnBox = document.getElementById('s_warnBox');
   let warnMsgs=[];
   if(totalQty===0){
@@ -695,51 +705,51 @@ function calcSingle(){
   if(L>0 && (L+girth) > maxLG) warnMsgs.push('長+周長 '+(L+girth).toFixed(1)+'cm 超過該國限制('+maxLG+'cm)。');
   warnBox.innerHTML = warnMsgs.length ? '⚠ '+warnMsgs.join('<br>⚠ ') : '';
   warnBox.classList.toggle('show', warnMsgs.length>0);
-
+ 
   let outboundTotal = 0;
   lines.forEach(function(line){
     const fee = skuFee(SKU_OUT, line.p.weight/1000);
     outboundTotal += fee*line.qty;
   });
-
+ 
   document.getElementById('s_deShip').value = dhlPrice.toFixed(2);
   document.getElementById('s_deSkuOut').value = outboundTotal.toFixed(2);
   updateCompare();
 }
-
+ 
 function updateCompare(){
   const totals = getSingleTotals();
   const countryIdx = parseInt(s_countrySel.value)||0;
   const vatRate = VAT_RATES[countryIdx];
   const fxRate = parseFloat(document.getElementById('s_fxRate').value)||1.165;
-
+ 
   // 關稅：同一訂單內「不同 HS Code」各課一次 €3，2026/7/1 起生效
   const hsSet = new Set(totals.lines.map(function(line){ return line.p.hsCode; }));
   const distinctCategories = hsSet.size;
   const fedexDuty = distinctCategories * EU_DUTY_EUR * fxRate;
-
+ 
   // IOSS / OSS 稅金：申報價值 × 目的地國 VAT 稅率（兩邊算法相同，差別在 DE 倉沒有進口關稅）
   const taxAmount = totals.declaredValue * vatRate;
-
+ 
   document.getElementById('s_fedexDuty').value = fedexDuty.toFixed(2);
   document.getElementById('s_fedexIoss').value = taxAmount.toFixed(2);
   document.getElementById('s_deTax').value = taxAmount.toFixed(2);
-
+ 
   document.getElementById('s_dutyNote').textContent =
     distinctCategories>0 ? ('自動：€3 × '+distinctCategories+' 個不同 HS Code('+Array.from(hsSet).join('、')+') × '+fxRate+' = $'+fmt(fedexDuty)) : '自動：€3 × 0 個 HS Code';
   document.getElementById('s_iossNote').textContent =
     totals.declaredValue>0 ? ('自動：申報價值 $'+fmt(totals.declaredValue)+' × '+DHL.countries[countryIdx]+' '+(vatRate*100).toFixed(1)+'%') : '自動：申報價值 × 目的地國稅率';
   document.getElementById('s_ossNote').textContent =
     totals.declaredValue>0 ? ('自動：申報價值 $'+fmt(totals.declaredValue)+' × '+(vatRate*100).toFixed(1)+'%，境內銷售無關稅') : '自動：申報價值 × 目的地國稅率，境內銷售無關稅';
-
+ 
   const fedexShip = parseFloat(document.getElementById('s_fedexShip').value)||0;
   const fedexAdv  = parseFloat(document.getElementById('s_fedexAdvFee').value)||0;
   const fedexSubtotal = fedexShip+fedexDuty+taxAmount+fedexAdv;
-
+ 
   const deShip    = parseFloat(document.getElementById('s_deShip').value)||0;
   const deSkuOut  = parseFloat(document.getElementById('s_deSkuOut').value)||0;
   const deBoxCost = parseFloat(document.getElementById('s_deBoxCost').value)||0;
-
+ 
   // 入倉/倉儲成本、加值服務：僅在對應開關打開時才計入並顯示
   let inboundTotal=0, storageTotal=0, relabelCost=0, inspectCost=0;
   const extraRows = [];
@@ -766,12 +776,12 @@ function updateCompare(){
   document.getElementById('s_deExtraRows').innerHTML = extraRows.map(function(r){
     return '<div class="compare-line"><label class="cl-label">'+r.label+'<span class="cl-note">'+r.note+'</span></label><div class="cl-readonly-val">'+fmt(r.amount)+'</div></div>';
   }).join('');
-
+ 
   const deSubtotal = deShip+deSkuOut+taxAmount+deBoxCost+inboundTotal+storageTotal+relabelCost+inspectCost;
-
+ 
   document.getElementById('s_fedexSubtotal').textContent = 'USD '+fmt(fedexSubtotal);
   document.getElementById('s_deSubtotal').textContent = 'USD '+fmt(deSubtotal);
-
+ 
   const deltaEl = document.getElementById('s_compareDelta');
   const fedexNote = fedexShip>0 ? '' : '若有 FedEx 運費資料，差異會更大。';
   if(totals.totalQty>0){
@@ -784,7 +794,7 @@ function updateCompare(){
     deltaEl.style.color = 'var(--muted)';
   }
 }
-
+ 
 setSwitch(s_whSwitch, s_whFold, false);
 setSwitch(s_vasSwitch, s_vasFold, false);
 calcBatch();
@@ -792,3 +802,6 @@ calcSingle();
 </script>
 </body>
 </html>
+ 
+
+
