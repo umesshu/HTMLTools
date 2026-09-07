@@ -178,35 +178,80 @@
   }
   .amt-cell .conv{ display:block; font-size:10px; opacity:.7; }
 
-  /* 逐筆列表（可編輯） */
-  .list-view{ padding-top:8px; }
+  /* 逐筆列表：唯讀、緊湊的表格式列 */
+  .list-view{ padding-top:6px; }
   .rec-date{
     font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
-    padding:10px 0 4px; border-top:1px dotted #DAD6C4;
+    padding:9px 0 3px; border-top:1px dotted #DAD6C4;
   }
   .list-view > .rec-date:first-child{ border-top:none; }
-  .rec-card{
-    border-bottom:1px dashed var(--paper-line);
-    padding:9px 2px 12px;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:7px 8px;
+
+  .trow{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 2px; cursor:pointer;
+    border-bottom:1px dotted #E4E0D0;
   }
-  .rec-card .field{ display:flex; flex-direction:column; gap:2px; }
-  .rec-card .field.full{ grid-column:1 / -1; }
-  .rec-card label{
-    font-size:9.5px; letter-spacing:.05em; color:var(--ink-soft);
+  .trow:active{ background:var(--paper-dark); }
+  .trow-avatar{
+    flex:none; width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:13px; font-weight:700;
   }
-  .rec-card input, .rec-card select, .rec-card textarea{
-    font-family:var(--font-sans); font-size:12.5px; color:var(--ink);
+  .trow-main{ flex:1; min-width:0; }
+  .trow-title{
+    font-size:13px; font-weight:500; color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .trow-sub{
+    font-size:11px; color:var(--ink-soft); margin-top:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .trow-right{ flex:none; text-align:right; }
+  .trow-amt{
+    font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--stamp);
+  }
+  .trow-cat{
+    font-size:9.5px; color:var(--ink-soft); margin-top:2px;
+  }
+
+  /* 點列跳出的編輯視窗 */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(30,28,22,.45);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:50;
+  }
+  .edit-modal{
+    background:var(--paper); width:100%; max-width:380px;
+    max-height:86vh; overflow-y:auto;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .edit-modal-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px dashed var(--paper-line);
+    position:sticky; top:0; background:var(--paper);
+  }
+  .edit-modal-head .t{ font-size:14px; font-weight:700; }
+  .edit-modal-head button{
+    border:none; background:var(--paper-dark); width:26px; height:26px;
+    font-size:13px; color:var(--ink-soft); cursor:pointer;
+  }
+  .edit-modal-body{
+    padding:14px 16px 20px;
+    display:grid; grid-template-columns:1fr 1fr; gap:10px 12px;
+  }
+  .edit-modal-body .field{ display:flex; flex-direction:column; gap:3px; }
+  .edit-modal-body .field.full{ grid-column:1 / -1; }
+  .edit-modal-body label{ font-size:9.5px; letter-spacing:.05em; color:var(--ink-soft); }
+  .edit-modal-body input, .edit-modal-body select, .edit-modal-body textarea{
+    font-family:var(--font-sans); font-size:13px; color:var(--ink);
     background:transparent; border:none; border-bottom:1px solid var(--paper-line);
-    padding:3px 1px; width:100%;
+    padding:4px 1px; width:100%;
   }
-  .rec-card input[type="number"]{ font-family:var(--font-mono); }
-  .rec-card input:focus, .rec-card select:focus, .rec-card textarea:focus{
+  .edit-modal-body input[type="number"]{ font-family:var(--font-mono); }
+  .edit-modal-body input:focus, .edit-modal-body select:focus, .edit-modal-body textarea:focus{
     outline:none; border-bottom:1px solid var(--stamp);
   }
-  .rec-card textarea{ resize:none; height:32px; font-size:12px; }
+  .edit-modal-body textarea{ resize:none; height:36px; font-size:12.5px; }
   .field-saved{ border-bottom:1px solid var(--c-food) !important; transition:border-color .8s ease; }
 
   footer{ text-align:center; padding-top:16px; }
@@ -262,6 +307,16 @@
   <div class="list" id="categoryList"></div>
 
   <div class="list-view" id="listView" style="display:none;"></div>
+
+  <div class="modal-backdrop" id="editBackdrop" style="display:none;">
+    <div class="edit-modal">
+      <div class="edit-modal-head">
+        <span class="t" id="editModalTitle"></span>
+        <button id="editModalClose">✕</button>
+      </div>
+      <div class="edit-modal-body" id="editModalBody"></div>
+    </div>
+  </div>
 
   <footer>
     <div class="tag">點分類可展開明細 · 資料來源 Google 試算表</div>
@@ -525,6 +580,11 @@ async function saveField(rowId, field, value, inputEl){
   }
 }
 
+function fmtAmountOnly(amount, currency){
+  const symbol = CURRENCY_SYMBOLS[currency] || (currency + " ");
+  return symbol + amount.toLocaleString();
+}
+
 function renderListView(rows){
   const wrap = document.getElementById("listView");
   wrap.innerHTML = "";
@@ -540,39 +600,73 @@ function renderListView(rows){
       wrap.appendChild(dEl);
     }
 
-    const card = document.createElement("div");
-    card.className = "rec-card";
+    const row = document.createElement("div");
+    row.className = "trow";
+    const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
+    const subLine = r.item || r.note || "";
 
-    const catOptions = CATEGORY_LIST.map(c=>`<option value="${c}" ${c===r.category?"selected":""}>${c}</option>`).join("");
-    const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
-
-    card.innerHTML = `
-      <div class="field"><label>商家</label><input type="text" data-field="store" value="${r.store||""}"></div>
-      <div class="field"><label>日期</label><input type="date" data-field="date" value="${r.date||""}"></div>
-      <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
-      <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
-      <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
-      <div class="field"><label>分類</label><select data-field="category">${catOptions}</select></div>
-      <div class="field"><label>子分類</label><input type="text" data-field="subcategory" value="${r.subcategory||""}"></div>
-      <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
+    row.innerHTML = `
+      <div class="trow-avatar" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
+      <div class="trow-main">
+        <div class="trow-title">${r.store || "未知商家"}</div>
+        <div class="trow-sub">${subLine}</div>
+      </div>
+      <div class="trow-right">
+        <div class="trow-amt">${fmtAmountOnly(r.amount, r.currency)}</div>
+        <div class="trow-cat">${r.category}${r.subcategory ? "・" + r.subcategory : ""}</div>
+      </div>
     `;
-
-    card.querySelectorAll("[data-field]").forEach(el=>{
-      const evt = (el.tagName === "SELECT") ? "change" : "blur";
-      el.addEventListener(evt, ()=>{
-        let val = el.value;
-        if(el.dataset.field === "amount") val = Number(val) || 0;
-        saveField(r.rowId, el.dataset.field, val, el);
-      });
-    });
-
-    wrap.appendChild(card);
+    row.addEventListener("click", ()=> openEditModal(r));
+    wrap.appendChild(row);
   });
 
   if(sorted.length === 0){
     wrap.innerHTML = `<div class="rec-date">此篩選條件下沒有資料</div>`;
   }
 }
+
+function openEditModal(r){
+  document.getElementById("editModalTitle").textContent = `${r.store || "未知商家"} · ${r.date}`;
+  const body = document.getElementById("editModalBody");
+
+  const catOptions = CATEGORY_LIST.map(c=>`<option value="${c}" ${c===r.category?"selected":""}>${c}</option>`).join("");
+  const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
+
+  body.innerHTML = `
+    <div class="field"><label>商家</label><input type="text" data-field="store" value="${r.store||""}"></div>
+    <div class="field"><label>日期</label><input type="date" data-field="date" value="${r.date||""}"></div>
+    <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
+    <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
+    <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
+    <div class="field"><label>分類</label><select data-field="category">${catOptions}</select></div>
+    <div class="field"><label>子分類</label><input type="text" data-field="subcategory" value="${r.subcategory||""}"></div>
+    <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
+  `;
+
+  body.querySelectorAll("[data-field]").forEach(el=>{
+    const evt = (el.tagName === "SELECT") ? "change" : "blur";
+    el.addEventListener(evt, ()=>{
+      let val = el.value;
+      if(el.dataset.field === "amount") val = Number(val) || 0;
+      saveField(r.rowId, el.dataset.field, val, el);
+      // 分類/金額/商家有變動時，同步更新畫面上這一列的呈現
+      if(["category","store","amount","currency","subcategory","item"].includes(el.dataset.field)){
+        renderListView(getFiltered());
+      }
+    });
+  });
+
+  document.getElementById("editBackdrop").style.display = "flex";
+}
+
+function closeEditModal(){
+  document.getElementById("editBackdrop").style.display = "none";
+}
+
+document.getElementById("editModalClose").addEventListener("click", closeEditModal);
+document.getElementById("editBackdrop").addEventListener("click", e=>{
+  if(e.target.id === "editBackdrop") closeEditModal();
+});
 
 function renderList(grouped, grandTotal){
   const wrap = document.getElementById("categoryList");
