@@ -178,6 +178,37 @@
   }
   .amt-cell .conv{ display:block; font-size:10px; opacity:.7; }
 
+  /* 逐筆列表（可編輯） */
+  .list-view{ padding-top:8px; }
+  .rec-date{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
+    padding:10px 0 4px; border-top:1px dotted #DAD6C4;
+  }
+  .list-view > .rec-date:first-child{ border-top:none; }
+  .rec-card{
+    border-bottom:1px dashed var(--paper-line);
+    padding:9px 2px 12px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:7px 8px;
+  }
+  .rec-card .field{ display:flex; flex-direction:column; gap:2px; }
+  .rec-card .field.full{ grid-column:1 / -1; }
+  .rec-card label{
+    font-size:9.5px; letter-spacing:.05em; color:var(--ink-soft);
+  }
+  .rec-card input, .rec-card select, .rec-card textarea{
+    font-family:var(--font-sans); font-size:12.5px; color:var(--ink);
+    background:transparent; border:none; border-bottom:1px solid var(--paper-line);
+    padding:3px 1px; width:100%;
+  }
+  .rec-card input[type="number"]{ font-family:var(--font-mono); }
+  .rec-card input:focus, .rec-card select:focus, .rec-card textarea:focus{
+    outline:none; border-bottom:1px solid var(--stamp);
+  }
+  .rec-card textarea{ resize:none; height:32px; font-size:12px; }
+  .field-saved{ border-bottom:1px solid var(--c-food) !important; transition:border-color .8s ease; }
+
   footer{ text-align:center; padding-top:16px; }
   footer .tag{ font-size:10.5px; letter-spacing:.1em; color:var(--ink-soft); }
 </style>
@@ -203,6 +234,7 @@
       <div class="seg" id="chartTypeSeg">
         <button data-type="pie" class="active">圓餅圖</button>
         <button data-type="bar">長條圖</button>
+        <button data-type="list">逐筆列表</button>
       </div>
       <select id="rangeSelect">
         <option value="all" selected>全部</option>
@@ -223,11 +255,13 @@
     <div class="row chips" id="categoryChips"></div>
   </div>
 
-  <div class="chart-wrap">
+  <div class="chart-wrap" id="chartWrap">
     <canvas id="mainChart" height="240"></canvas>
   </div>
 
   <div class="list" id="categoryList"></div>
+
+  <div class="list-view" id="listView" style="display:none;"></div>
 
   <footer>
     <div class="tag">點分類可展開明細 · 資料來源 Google 試算表</div>
@@ -312,6 +346,8 @@ const CAT_COLORS = {
   "人情往來":"var(--c-social)", "定期費用":"var(--c-recur)", "寵物":"var(--c-pet)",
   "幫忙買":"var(--c-help)", "投資":"var(--c-invest)"
 };
+const CATEGORY_LIST = Object.keys(CAT_COLORS);
+const CURRENCY_LIST = ["TWD","JPY","USD","CNY","KRW","EUR","HKD"];
 function resolveColor(v){
   const cssVar = v.match(/var\((--[a-z-]+)\)/);
   if(!cssVar) return v;
@@ -469,6 +505,75 @@ function toggleOpen(cat){
   if(willOpen) row.classList.add("open");
 }
 
+// 儲存單一欄位到 Google 試算表。刻意不設定 Content-Type header，
+// 讓瀏覽器預設用 text/plain 送出，避免觸發 CORS 預檢（preflight）被 Apps Script 擋下。
+async function saveField(rowId, field, value, inputEl){
+  try{
+    await fetch(SHEET_API_URL, {
+      method:"POST",
+      body: JSON.stringify({ action:"update", rowId, [field]: value })
+    });
+    const local = ALL_DATA.find(r => r.rowId === rowId);
+    if(local) local[field] = value;
+    if(inputEl){
+      inputEl.classList.add("field-saved");
+      setTimeout(()=> inputEl.classList.remove("field-saved"), 800);
+    }
+  }catch(err){
+    console.error(`儲存失敗（列${rowId}，欄位${field}）：`, err);
+    alert("儲存失敗，請檢查網路連線後再試一次");
+  }
+}
+
+function renderListView(rows){
+  const wrap = document.getElementById("listView");
+  wrap.innerHTML = "";
+  const sorted = [...rows].sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  let lastDate = null;
+  sorted.forEach(r=>{
+    if(r.date !== lastDate){
+      lastDate = r.date;
+      const dEl = document.createElement("div");
+      dEl.className = "rec-date";
+      dEl.textContent = r.date;
+      wrap.appendChild(dEl);
+    }
+
+    const card = document.createElement("div");
+    card.className = "rec-card";
+
+    const catOptions = CATEGORY_LIST.map(c=>`<option value="${c}" ${c===r.category?"selected":""}>${c}</option>`).join("");
+    const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
+
+    card.innerHTML = `
+      <div class="field"><label>商家</label><input type="text" data-field="store" value="${r.store||""}"></div>
+      <div class="field"><label>日期</label><input type="date" data-field="date" value="${r.date||""}"></div>
+      <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
+      <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
+      <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
+      <div class="field"><label>分類</label><select data-field="category">${catOptions}</select></div>
+      <div class="field"><label>子分類</label><input type="text" data-field="subcategory" value="${r.subcategory||""}"></div>
+      <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
+    `;
+
+    card.querySelectorAll("[data-field]").forEach(el=>{
+      const evt = (el.tagName === "SELECT") ? "change" : "blur";
+      el.addEventListener(evt, ()=>{
+        let val = el.value;
+        if(el.dataset.field === "amount") val = Number(val) || 0;
+        saveField(r.rowId, el.dataset.field, val, el);
+      });
+    });
+
+    wrap.appendChild(card);
+  });
+
+  if(sorted.length === 0){
+    wrap.innerHTML = `<div class="rec-date">此篩選條件下沒有資料</div>`;
+  }
+}
+
 function renderList(grouped, grandTotal){
   const wrap = document.getElementById("categoryList");
   wrap.innerHTML = "";
@@ -536,8 +641,18 @@ function renderAll(){
   document.getElementById("totalAmount").textContent = fmt(grandTotal);
   const rangeLabel = {today:"今天", yesterday:"昨天", dayBeforeYesterday:"前天", thisMonth:"本月", lastMonth:"上月", thisYear:"本年", all:"全部"}[state.range];
   document.getElementById("periodLabel").textContent = rangeLabel;
-  renderChart(rows, grouped);
-  renderList(grouped, grandTotal);
+
+  const isList = state.chartType === "list";
+  document.getElementById("chartWrap").style.display = isList ? "none" : "block";
+  document.getElementById("categoryList").style.display = isList ? "none" : "block";
+  document.getElementById("listView").style.display = isList ? "block" : "none";
+
+  if(isList){
+    renderListView(rows);
+  } else {
+    renderChart(rows, grouped);
+    renderList(grouped, grandTotal);
+  }
 }
 
 document.getElementById("chartTypeSeg").addEventListener("click", e=>{
