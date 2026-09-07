@@ -403,6 +403,20 @@ const CAT_COLORS = {
 };
 const CATEGORY_LIST = Object.keys(CAT_COLORS);
 const CURRENCY_LIST = ["TWD","JPY","USD","CNY","KRW","EUR","HKD"];
+
+const CATEGORY_MAP = {
+  "飲食": ["早餐","午餐","晚餐","無特定","酒茶","宵夜","零食","菜錢"],
+  "交通": ["停車費","火車","捷運","計程車","汽油","飛機","巴士","高鐵","gogoro換電馳","其他","ubike","洗車","無特定"],
+  "其他": ["其他","意外","無特定","罰款","賭博"],
+  "日常": ["無特定","日常","修理","通訊","保險","稅金","治裝","送禮","郵寄","酒茶","早餐","知識與書籍","沖洗照片","ChargeSPOT"],
+  "穆佰傢俱": ["買東西","無特定","研發","影片酬勞"],
+  "健康與娛樂": ["娛樂","醫療","保健","遊戲","住宿","運動","露營"],
+  "人情往來": ["送禮","無特定","宗教"],
+  "定期費用": ["運動","水費","通訊","軟體續約","保險","gogoro換電馳","稅金","電費","房租","無特定","貸款","瓦斯"],
+  "寵物": ["用品","飼料","醫療","零食","安葬","洗澡","保險","交通"],
+  "幫忙買": ["無特定"],
+  "投資": ["投入"]
+};
 function resolveColor(v){
   const cssVar = v.match(/var\((--[a-z-]+)\)/);
   if(!cssVar) return v;
@@ -629,7 +643,8 @@ function openEditModal(r){
   document.getElementById("editModalTitle").textContent = `${r.store || "未知商家"} · ${r.date}`;
   const body = document.getElementById("editModalBody");
 
-  const catOptions = CATEGORY_LIST.map(c=>`<option value="${c}" ${c===r.category?"selected":""}>${c}</option>`).join("");
+  const catDatalistOptions = CATEGORY_LIST.map(c=>`<option value="${c}">`).join("");
+  const subcatDatalistOptions = (CATEGORY_MAP[r.category] || []).map(s=>`<option value="${s}">`).join("");
   const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
 
   body.innerHTML = `
@@ -638,10 +653,24 @@ function openEditModal(r){
     <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
     <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
     <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
-    <div class="field"><label>分類</label><select data-field="category">${catOptions}</select></div>
-    <div class="field"><label>子分類</label><input type="text" data-field="subcategory" value="${r.subcategory||""}"></div>
+    <div class="field">
+      <label>分類</label>
+      <input type="text" data-field="category" value="${r.category||""}" list="categoryDatalist" autocomplete="off">
+      <datalist id="categoryDatalist">${catDatalistOptions}</datalist>
+    </div>
+    <div class="field">
+      <label>子分類</label>
+      <input type="text" data-field="subcategory" value="${r.subcategory||""}" list="subcategoryDatalist" autocomplete="off">
+      <datalist id="subcategoryDatalist">${subcatDatalistOptions}</datalist>
+    </div>
     <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
   `;
+
+  // 主分類變動時，即時更新子分類的建議清單（輸入不存在的新分類時，建議清單就會是空的，仍可自行輸入）
+  body.querySelector('[data-field="category"]').addEventListener("input", e=>{
+    const opts = (CATEGORY_MAP[e.target.value] || []).map(s=>`<option value="${s}">`).join("");
+    document.getElementById("subcategoryDatalist").innerHTML = opts;
+  });
 
   body.querySelectorAll("[data-field]").forEach(el=>{
     const evt = (el.tagName === "SELECT") ? "change" : "blur";
