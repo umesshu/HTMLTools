@@ -85,17 +85,17 @@
   }
 
   header{ text-align:center; padding:18px 0 14px; border-bottom:1px dashed var(--paper-line); }
-  header .brand{ font-size:12px; letter-spacing:.14em; color:var(--ink-soft); }
-  header h1{ margin:6px 0 2px; font-size:22px; font-weight:900; }
-  header .period{ font-size:13px; color:var(--ink-soft); font-family:var(--font-mono); }
+  header .brand{ font-size:14px; letter-spacing:.14em; color:var(--ink-soft); }
+  header h1{ margin:6px 0 2px; font-size:25.5px; font-weight:900; }
+  header .period{ font-size:15px; color:var(--ink-soft); font-family:var(--font-mono); }
 
   .total-row{
     display:flex; align-items:baseline; justify-content:center; gap:8px;
     padding:16px 0 14px; border-bottom:1px dashed var(--paper-line);
   }
-  .total-row .label{ font-size:13px; color:var(--ink-soft); }
+  .total-row .label{ font-size:15px; color:var(--ink-soft); }
   .total-row .amount{
-    font-family:var(--font-mono); font-weight:700; font-size:30px;
+    font-family:var(--font-mono); font-weight:700; font-size:34.5px;
     color:var(--stamp);
   }
 
@@ -107,19 +107,19 @@
   }
   .seg button{
     border:none; background:transparent; font-family:var(--font-sans);
-    font-size:13px; padding:6px 12px; color:var(--ink-soft); cursor:pointer;
+    font-size:15px; padding:6px 12px; color:var(--ink-soft); cursor:pointer;
   }
   .seg button.active{ background:var(--ink); color:var(--paper); }
 
   select{
-    font-family:var(--font-sans); font-size:13px; color:var(--ink);
+    font-family:var(--font-sans); font-size:15px; color:var(--ink);
     background:var(--paper-dark); border:none; padding:7px 10px;
     appearance:none; flex:1; min-width:110px;
   }
 
   .chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .chip{
-    font-size:12px; padding:5px 10px; border:1px solid var(--paper-line);
+    font-size:14px; padding:5px 10px; border:1px solid var(--paper-line);
     color:var(--ink-soft); cursor:pointer; user-select:none;
     background:var(--paper);
   }
@@ -138,12 +138,12 @@
   }
   .cat-head .name-wrap{ display:flex; align-items:center; gap:9px; }
   .dot{ width:10px; height:10px; flex:none; }
-  .cat-head .name{ font-size:14px; font-weight:500; }
-  .cat-head .sub{ font-size:11px; color:var(--ink-soft); margin-left:6px; }
+  .cat-head .name{ font-size:16px; font-weight:500; }
+  .cat-head .sub{ font-size:12.5px; color:var(--ink-soft); margin-left:6px; }
   .cat-head .right{ display:flex; align-items:center; gap:10px; }
-  .cat-head .pct{ font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); width:34px; text-align:right; }
-  .cat-head .amt{ font-family:var(--font-mono); font-size:14px; font-weight:700; min-width:76px; text-align:right; }
-  .cat-head .caret{ font-size:11px; color:var(--ink-soft); transition:transform .15s ease; width:10px; }
+  .cat-head .pct{ font-family:var(--font-mono); font-size:14px; color:var(--ink-soft); width:38px; text-align:right; }
+  .cat-head .amt{ font-family:var(--font-mono); font-size:16px; font-weight:700; min-width:86px; text-align:right; }
+  .cat-head .caret{ font-size:12.5px; color:var(--ink-soft); transition:transform .15s ease; width:10px; }
   .cat-row.open .caret{ transform:rotate(90deg); }
 
   .items{
@@ -158,30 +158,30 @@
   }
   .date-row{
     grid-column:1 / -1;
-    font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
+    font-family:var(--font-mono); font-size:12.5px; color:var(--ink-soft);
     padding:9px 0 4px; border-top:1px dotted #DAD6C4;
   }
   .items-grid > .date-row:first-child{ border-top:none; }
   .store-cell{
-    font-size:12.5px; font-weight:500; color:var(--ink);
+    font-size:14.5px; font-weight:500; color:var(--ink);
     padding:4px 0; align-self:start;
   }
   .item-cell{
-    font-size:12.5px; color:var(--ink-soft);
+    font-size:14.5px; color:var(--ink-soft);
     padding:4px 0; align-self:start;
   }
   .item-cell::before{ content:"· "; }
   .item-cell:empty::before{ content:""; }
   .amt-cell{
-    font-family:var(--font-mono); font-size:12.5px; color:var(--ink-soft);
+    font-family:var(--font-mono); font-size:14.5px; color:var(--ink-soft);
     padding:4px 0; text-align:right; align-self:start;
   }
-  .amt-cell .conv{ display:block; font-size:10px; opacity:.7; }
+  .amt-cell .conv{ display:block; font-size:11.5px; opacity:.7; }
 
   /* 逐筆列表：唯讀、緊湊的表格式列 */
   .list-view{ padding-top:6px; }
   .rec-date{
-    font-family:var(--font-mono); font-size:11px; color:var(--ink-soft);
+    font-family:var(--font-mono); font-size:12.5px; color:var(--ink-soft);
     padding:9px 0 3px; border-top:1px dotted #DAD6C4;
   }
   .list-view > .rec-date:first-child{ border-top:none; }
@@ -193,25 +193,25 @@
   }
   .trow:active{ background:var(--paper-dark); }
   .trow-avatar{
-    flex:none; width:32px; height:32px; border-radius:50%;
+    flex:none; width:38px; height:38px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    color:#fff; font-size:13px; font-weight:700;
+    color:#fff; font-size:16px; font-weight:700;
   }
   .trow-main{ flex:1; min-width:0; }
   .trow-title{
-    font-size:13px; font-weight:500; color:var(--ink);
+    font-size:15px; font-weight:500; color:var(--ink);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .trow-sub{
-    font-size:11px; color:var(--ink-soft); margin-top:1px;
+    font-size:12.5px; color:var(--ink-soft); margin-top:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .trow-right{ flex:none; text-align:right; }
   .trow-amt{
-    font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--stamp);
+    font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--stamp);
   }
   .trow-cat{
-    font-size:9.5px; color:var(--ink-soft); margin-top:2px;
+    font-size:11px; color:var(--ink-soft); margin-top:2px;
   }
 
   /* 點列跳出的編輯視窗 */
@@ -230,10 +230,10 @@
     padding:14px 16px; border-bottom:1px dashed var(--paper-line);
     position:sticky; top:0; background:var(--paper);
   }
-  .edit-modal-head .t{ font-size:14px; font-weight:700; }
+  .edit-modal-head .t{ font-size:16px; font-weight:700; }
   .edit-modal-head button{
-    border:none; background:var(--paper-dark); width:26px; height:26px;
-    font-size:13px; color:var(--ink-soft); cursor:pointer;
+    border:none; background:var(--paper-dark); width:30px; height:30px;
+    font-size:15px; color:var(--ink-soft); cursor:pointer;
   }
   .edit-modal-body{
     padding:14px 16px 20px;
@@ -241,9 +241,9 @@
   }
   .edit-modal-body .field{ display:flex; flex-direction:column; gap:3px; }
   .edit-modal-body .field.full{ grid-column:1 / -1; }
-  .edit-modal-body label{ font-size:9.5px; letter-spacing:.05em; color:var(--ink-soft); }
+  .edit-modal-body label{ font-size:11px; letter-spacing:.05em; color:var(--ink-soft); }
   .edit-modal-body input, .edit-modal-body select, .edit-modal-body textarea{
-    font-family:var(--font-sans); font-size:13px; color:var(--ink);
+    font-family:var(--font-sans); font-size:15px; color:var(--ink);
     background:transparent; border:none; border-bottom:1px solid var(--paper-line);
     padding:4px 1px; width:100%;
   }
@@ -251,17 +251,17 @@
   .edit-modal-body input:focus, .edit-modal-body select:focus, .edit-modal-body textarea:focus{
     outline:none; border-bottom:1px solid var(--stamp);
   }
-  .edit-modal-body textarea{ resize:none; height:36px; font-size:12.5px; }
+  .edit-modal-body textarea{ resize:none; height:40px; font-size:14.5px; }
   .field-saved{ border-bottom:1px solid var(--c-food) !important; transition:border-color .8s ease; }
   .modal-save-btn{
     grid-column:1 / -1; margin-top:4px;
     background:var(--stamp); color:var(--paper);
-    border:none; padding:11px; font-size:13.5px; font-weight:700;
+    border:none; padding:11px; font-size:15.5px; font-weight:700;
     letter-spacing:.05em; cursor:pointer;
   }
   .modal-save-btn:disabled{ opacity:.55; }
   .modal-status{
-    grid-column:1 / -1; font-size:11.5px; text-align:center; margin-top:-4px;
+    grid-column:1 / -1; font-size:13px; text-align:center; margin-top:-4px;
     color:var(--stamp); min-height:14px;
   }
 
@@ -275,14 +275,14 @@
   }
   .combo-list.hidden{ display:none; }
   .combo-list div{
-    padding:8px 10px; font-size:12.5px; color:var(--ink);
+    padding:8px 10px; font-size:14.5px; color:var(--ink);
     border-bottom:1px solid #EEE9DC;
   }
   .combo-list div:last-child{ border-bottom:none; }
   .combo-list div:active{ background:var(--paper-dark); }
 
   footer{ text-align:center; padding-top:16px; }
-  footer .tag{ font-size:10.5px; letter-spacing:.1em; color:var(--ink-soft); }
+  footer .tag{ font-size:12px; letter-spacing:.1em; color:var(--ink-soft); }
 </style>
 </head>
 <body>
