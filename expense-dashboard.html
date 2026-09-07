@@ -603,7 +603,7 @@ function renderListView(rows){
     const row = document.createElement("div");
     row.className = "trow";
     const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
-    const subLine = r.item || r.note || "";
+    const subLine = [r.item, r.note].filter(Boolean).join("・");
 
     row.innerHTML = `
       <div class="trow-avatar" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
