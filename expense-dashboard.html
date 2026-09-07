@@ -281,6 +281,22 @@
   .combo-list div:last-child{ border-bottom:none; }
   .combo-list div:active{ background:var(--paper-dark); }
 
+  .add-record-btn{
+    width:100%; margin-bottom:4px;
+    background:transparent; border:1px dashed var(--paper-line);
+    color:var(--ink-soft); font-family:var(--font-sans); font-size:13.5px;
+    padding:11px; cursor:pointer;
+  }
+  .add-record-btn:active{ background:var(--paper-dark); }
+
+  .modal-delete-btn{
+    grid-column:1 / -1; margin-top:2px;
+    background:transparent; border:1px solid var(--stamp);
+    color:var(--stamp); padding:9px; font-size:12.5px; font-weight:500;
+    letter-spacing:.03em; cursor:pointer;
+  }
+  .modal-delete-btn:disabled{ opacity:.5; }
+
   footer{ text-align:center; padding-top:16px; }
   footer .tag{ font-size:12px; letter-spacing:.1em; color:var(--ink-soft); }
 </style>
@@ -326,6 +342,8 @@
     </div>
     <div class="row chips" id="categoryChips"></div>
   </div>
+
+  <button class="add-record-btn" id="addRecordBtn" style="display:none;">＋ 手動新增一筆</button>
 
   <div class="chart-wrap" id="chartWrap">
     <canvas id="mainChart" height="240"></canvas>
@@ -666,8 +684,24 @@ function renderListView(rows){
   }
 }
 
+function todayStr(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function openAddModal(){
+  openEditModal({
+    rowId: null, store:"", date: todayStr(), item:"",
+    amount:0, currency:"TWD", category:"", subcategory:"", note:""
+  });
+}
+
 function openEditModal(r){
-  document.getElementById("editModalTitle").textContent = `${r.store || "未知商家"} · ${r.date}`;
+  const isNew = !r.rowId;
+  document.getElementById("editModalTitle").textContent = isNew
+    ? "手動新增一筆"
+    : `${r.store || "未知商家"} · ${r.date}`;
   const body = document.getElementById("editModalBody");
 
   const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
@@ -690,7 +724,8 @@ function openEditModal(r){
     </div>
     <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
     <div class="modal-status" id="modalStatus"></div>
-    <button class="modal-save-btn" id="modalSaveBtn">確認修改</button>
+    <button class="modal-save-btn" id="modalSaveBtn">${isNew ? "新增這筆" : "確認修改"}</button>
+    ${isNew ? "" : `<button class="modal-delete-btn" id="modalDeleteBtn">刪除這筆記錄</button>`}
   `;
 
   const categoryInput = body.querySelector('[data-field="category"]');
@@ -701,10 +736,15 @@ function openEditModal(r){
   setupCombo(categoryInput, categoryList, () => CATEGORY_LIST);
   setupCombo(subcategoryInput, subcategoryList, () => CATEGORY_MAP[categoryInput.value] || []);
 
-  document.getElementById("modalSaveBtn").addEventListener("click", ()=> saveAllFields(r));
+  document.getElementById("modalSaveBtn").addEventListener("click", ()=> saveAllFields(r, isNew));
+  if(!isNew){
+    document.getElementById("modalDeleteBtn").addEventListener("click", ()=> deleteRecord(r));
+  }
 
   document.getElementById("editBackdrop").style.display = "flex";
 }
+
+document.getElementById("addRecordBtn").addEventListener("click", openAddModal);
 
 // 自訂下拉清單：inputEl是文字輸入框，listEl是下面跳出的選項清單，
 // getOptionsFn()回傳目前該顯示哪些選項（子分類會依當下分類即時計算）。
@@ -729,12 +769,12 @@ function setupCombo(inputEl, listEl, getOptionsFn){
   });
 }
 
-async function saveAllFields(r){
+async function saveAllFields(r, isNew){
   const body = document.getElementById("editModalBody");
   const btn = document.getElementById("modalSaveBtn");
   const status = document.getElementById("modalStatus");
 
-  const payload = { action:"update", rowId: r.rowId };
+  const payload = isNew ? { action:"add" } : { action:"update", rowId: r.rowId };
   body.querySelectorAll("[data-field]").forEach(el=>{
     let val = el.value;
     if(el.dataset.field === "amount") val = Number(val) || 0;
@@ -747,15 +787,40 @@ async function saveAllFields(r){
 
   try{
     await fetch(SHEET_API_URL, { method:"POST", body: JSON.stringify(payload) });
-    const local = ALL_DATA.find(x => x.rowId === r.rowId);
-    if(local) Object.assign(local, payload);
     closeEditModal();
-    renderAll();
+    if(isNew){
+      await loadData(); // 新增的列，正確的rowId要由試算表決定，直接重新整批讀取最準確
+    } else {
+      const local = ALL_DATA.find(x => x.rowId === r.rowId);
+      if(local) Object.assign(local, payload);
+      renderAll();
+    }
   }catch(err){
     console.error("儲存失敗：", err);
     status.textContent = "儲存失敗，請檢查網路後再試一次";
     btn.disabled = false;
-    btn.textContent = "確認修改";
+    btn.textContent = isNew ? "新增這筆" : "確認修改";
+  }
+}
+
+async function deleteRecord(r){
+  if(!confirm(`確定要刪除「${r.store || "未知商家"}・${r.item || ""}」這筆記錄嗎？此動作無法復原。`)) return;
+
+  const delBtn = document.getElementById("modalDeleteBtn");
+  const status = document.getElementById("modalStatus");
+  delBtn.disabled = true;
+  delBtn.textContent = "刪除中…";
+  status.textContent = "";
+
+  try{
+    await fetch(SHEET_API_URL, { method:"POST", body: JSON.stringify({ action:"delete", rowId: r.rowId }) });
+    closeEditModal();
+    await loadData(); // 刪除會讓後面所有列往前移一位，直接重新整批讀取，避免其他列的rowId跟著錯位
+  }catch(err){
+    console.error("刪除失敗：", err);
+    status.textContent = "刪除失敗，請檢查網路後再試一次";
+    delBtn.disabled = false;
+    delBtn.textContent = "刪除這筆記錄";
   }
 }
 
@@ -840,6 +905,7 @@ function renderAll(){
   document.getElementById("chartWrap").style.display = isList ? "none" : "block";
   document.getElementById("categoryList").style.display = isList ? "none" : "block";
   document.getElementById("listView").style.display = isList ? "block" : "none";
+  document.getElementById("addRecordBtn").style.display = isList ? "block" : "none";
 
   if(isList){
     renderListView(rows);
