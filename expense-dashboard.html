@@ -265,6 +265,22 @@
     color:var(--stamp); min-height:14px;
   }
 
+  /* 自訂下拉清單（取代原生 datalist，跨機型行為一致） */
+  .combo-wrap{ position:relative; }
+  .combo-list{
+    position:absolute; top:100%; left:0; right:0; margin-top:2px;
+    background:var(--paper); border:1px solid var(--paper-line);
+    max-height:160px; overflow-y:auto; z-index:60;
+    box-shadow:0 8px 20px rgba(0,0,0,.15);
+  }
+  .combo-list.hidden{ display:none; }
+  .combo-list div{
+    padding:8px 10px; font-size:12.5px; color:var(--ink);
+    border-bottom:1px solid #EEE9DC;
+  }
+  .combo-list div:last-child{ border-bottom:none; }
+  .combo-list div:active{ background:var(--paper-dark); }
+
   footer{ text-align:center; padding-top:16px; }
   footer .tag{ font-size:10.5px; letter-spacing:.1em; color:var(--ink-soft); }
 </style>
@@ -654,8 +670,6 @@ function openEditModal(r){
   document.getElementById("editModalTitle").textContent = `${r.store || "未知商家"} · ${r.date}`;
   const body = document.getElementById("editModalBody");
 
-  const catDatalistOptions = CATEGORY_LIST.map(c=>`<option value="${c}">`).join("");
-  const subcatDatalistOptions = (CATEGORY_MAP[r.category] || []).map(s=>`<option value="${s}">`).join("");
   const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}" ${c===r.currency?"selected":""}>${c}</option>`).join("");
 
   body.innerHTML = `
@@ -664,44 +678,55 @@ function openEditModal(r){
     <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
     <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
     <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
-    <div class="field">
+    <div class="field combo-wrap">
       <label>分類</label>
-      <input type="text" data-field="category" value="${r.category||""}" list="categoryDatalist" autocomplete="off">
-      <datalist id="categoryDatalist">${catDatalistOptions}</datalist>
+      <input type="text" data-field="category" value="${r.category||""}" autocomplete="off">
+      <div class="combo-list hidden" data-combo="category"></div>
     </div>
-    <div class="field">
+    <div class="field combo-wrap">
       <label>子分類</label>
-      <input type="text" data-field="subcategory" value="${r.subcategory||""}" list="subcategoryDatalist" autocomplete="off">
-      <datalist id="subcategoryDatalist">${subcatDatalistOptions}</datalist>
+      <input type="text" data-field="subcategory" value="${r.subcategory||""}" autocomplete="off">
+      <div class="combo-list hidden" data-combo="subcategory"></div>
     </div>
     <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
     <div class="modal-status" id="modalStatus"></div>
     <button class="modal-save-btn" id="modalSaveBtn">確認修改</button>
   `;
 
-  // 主分類變動時，即時更新子分類的建議清單（輸入不存在的新分類時，建議清單就會是空的，仍可自行輸入）
-  body.querySelector('[data-field="category"]').addEventListener("input", e=>{
-    const opts = (CATEGORY_MAP[e.target.value] || []).map(s=>`<option value="${s}">`).join("");
-    document.getElementById("subcategoryDatalist").innerHTML = opts;
-  });
+  const categoryInput = body.querySelector('[data-field="category"]');
+  const categoryList = body.querySelector('[data-combo="category"]');
+  const subcategoryInput = body.querySelector('[data-field="subcategory"]');
+  const subcategoryList = body.querySelector('[data-combo="subcategory"]');
 
-  // iOS Safari 的怪癖：datalist 若跟 input 目前的值有部分吻合，會把建議清單過濾到只剩吻合的那一項。
-  // 解法：聚焦時先暫時清空顯示，讓建議清單完整跳出；如果使用者沒有實際選或打新值就離開，再把原值還回去。
-  body.querySelectorAll('input[list]').forEach(el=>{
-    el.addEventListener("focus", ()=>{
-      el.dataset.prevValue = el.value;
-      el.value = "";
-    });
-    el.addEventListener("blur", ()=>{
-      if(el.value.trim() === "" && el.dataset.prevValue){
-        el.value = el.dataset.prevValue;
-      }
-    });
-  });
+  setupCombo(categoryInput, categoryList, () => CATEGORY_LIST);
+  setupCombo(subcategoryInput, subcategoryList, () => CATEGORY_MAP[categoryInput.value] || []);
 
   document.getElementById("modalSaveBtn").addEventListener("click", ()=> saveAllFields(r));
 
   document.getElementById("editBackdrop").style.display = "flex";
+}
+
+// 自訂下拉清單：inputEl是文字輸入框，listEl是下面跳出的選項清單，
+// getOptionsFn()回傳目前該顯示哪些選項（子分類會依當下分類即時計算）。
+// 完全不依賴任何原生UI，iPhone / iPad / 桌機行為一致；仍允許自行打字輸入清單以外的新值。
+function setupCombo(inputEl, listEl, getOptionsFn){
+  function renderOptions(filterText){
+    const all = getOptionsFn();
+    const opts = filterText ? all.filter(o => o.includes(filterText)) : all;
+    if(opts.length === 0){ listEl.classList.add("hidden"); listEl.innerHTML = ""; return; }
+    listEl.innerHTML = opts.map(o=>`<div data-val="${o}">${o}</div>`).join("");
+    listEl.classList.remove("hidden");
+  }
+  inputEl.addEventListener("focus", ()=> renderOptions(""));
+  inputEl.addEventListener("input", ()=> renderOptions(inputEl.value));
+  inputEl.addEventListener("blur", ()=> setTimeout(()=> listEl.classList.add("hidden"), 150));
+  listEl.addEventListener("mousedown", e=>{
+    const opt = e.target.closest("[data-val]");
+    if(!opt) return;
+    e.preventDefault(); // 避免input先觸發blur把清單關掉，導致點擊沒生效
+    inputEl.value = opt.dataset.val;
+    listEl.classList.add("hidden");
+  });
 }
 
 async function saveAllFields(r){
