@@ -253,6 +253,17 @@
   }
   .edit-modal-body textarea{ resize:none; height:36px; font-size:12.5px; }
   .field-saved{ border-bottom:1px solid var(--c-food) !important; transition:border-color .8s ease; }
+  .modal-save-btn{
+    grid-column:1 / -1; margin-top:4px;
+    background:var(--stamp); color:var(--paper);
+    border:none; padding:11px; font-size:13.5px; font-weight:700;
+    letter-spacing:.05em; cursor:pointer;
+  }
+  .modal-save-btn:disabled{ opacity:.55; }
+  .modal-status{
+    grid-column:1 / -1; font-size:11.5px; text-align:center; margin-top:-4px;
+    color:var(--stamp); min-height:14px;
+  }
 
   footer{ text-align:center; padding-top:16px; }
   footer .tag{ font-size:10.5px; letter-spacing:.1em; color:var(--ink-soft); }
@@ -664,6 +675,8 @@ function openEditModal(r){
       <datalist id="subcategoryDatalist">${subcatDatalistOptions}</datalist>
     </div>
     <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
+    <div class="modal-status" id="modalStatus"></div>
+    <button class="modal-save-btn" id="modalSaveBtn">確認修改</button>
   `;
 
   // 主分類變動時，即時更新子分類的建議清單（輸入不存在的新分類時，建議清單就會是空的，仍可自行輸入）
@@ -672,20 +685,53 @@ function openEditModal(r){
     document.getElementById("subcategoryDatalist").innerHTML = opts;
   });
 
-  body.querySelectorAll("[data-field]").forEach(el=>{
-    const evt = (el.tagName === "SELECT") ? "change" : "blur";
-    el.addEventListener(evt, ()=>{
-      let val = el.value;
-      if(el.dataset.field === "amount") val = Number(val) || 0;
-      saveField(r.rowId, el.dataset.field, val, el);
-      // 分類/金額/商家有變動時，同步更新畫面上這一列的呈現
-      if(["category","store","amount","currency","subcategory","item"].includes(el.dataset.field)){
-        renderListView(getFiltered());
+  // iOS Safari 的怪癖：datalist 若跟 input 目前的值有部分吻合，會把建議清單過濾到只剩吻合的那一項。
+  // 解法：聚焦時先暫時清空顯示，讓建議清單完整跳出；如果使用者沒有實際選或打新值就離開，再把原值還回去。
+  body.querySelectorAll('input[list]').forEach(el=>{
+    el.addEventListener("focus", ()=>{
+      el.dataset.prevValue = el.value;
+      el.value = "";
+    });
+    el.addEventListener("blur", ()=>{
+      if(el.value.trim() === "" && el.dataset.prevValue){
+        el.value = el.dataset.prevValue;
       }
     });
   });
 
+  document.getElementById("modalSaveBtn").addEventListener("click", ()=> saveAllFields(r));
+
   document.getElementById("editBackdrop").style.display = "flex";
+}
+
+async function saveAllFields(r){
+  const body = document.getElementById("editModalBody");
+  const btn = document.getElementById("modalSaveBtn");
+  const status = document.getElementById("modalStatus");
+
+  const payload = { action:"update", rowId: r.rowId };
+  body.querySelectorAll("[data-field]").forEach(el=>{
+    let val = el.value;
+    if(el.dataset.field === "amount") val = Number(val) || 0;
+    payload[el.dataset.field] = val;
+  });
+
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+  status.textContent = "";
+
+  try{
+    await fetch(SHEET_API_URL, { method:"POST", body: JSON.stringify(payload) });
+    const local = ALL_DATA.find(x => x.rowId === r.rowId);
+    if(local) Object.assign(local, payload);
+    closeEditModal();
+    renderAll();
+  }catch(err){
+    console.error("儲存失敗：", err);
+    status.textContent = "儲存失敗，請檢查網路後再試一次";
+    btn.disabled = false;
+    btn.textContent = "確認修改";
+  }
 }
 
 function closeEditModal(){
