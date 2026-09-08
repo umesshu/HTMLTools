@@ -126,30 +126,10 @@
   .chip.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
 
   .chart-wrap{ padding:18px 0 6px; }
+  .chart-wrap.pie-mode canvas{ max-width:70%; display:block; margin:0 auto; }
   canvas{ max-width:100%; }
 
   .list{ padding-top:6px; }
-  .cat-row{
-    border-bottom:1px dotted var(--paper-line);
-  }
-  .cat-head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:11px 0; cursor:pointer;
-  }
-  .cat-head .name-wrap{ display:flex; align-items:center; gap:9px; }
-  .dot{ width:10px; height:10px; flex:none; }
-  .cat-head .name{ font-size:16px; font-weight:500; }
-  .cat-head .sub{ font-size:12.5px; color:var(--ink-soft); margin-left:6px; }
-  .cat-head .right{ display:flex; align-items:center; gap:10px; }
-  .cat-head .pct{ font-family:var(--font-mono); font-size:14px; color:var(--ink-soft); width:38px; text-align:right; }
-  .cat-head .amt{ font-family:var(--font-mono); font-size:16px; font-weight:700; min-width:86px; text-align:right; }
-  .cat-head .caret{ font-size:12.5px; color:var(--ink-soft); transition:transform .15s ease; width:10px; }
-  .cat-row.open .caret{ transform:rotate(90deg); }
-
-  .items{
-    max-height:0; overflow:hidden; transition:max-height .2s ease;
-  }
-  .cat-row.open .items{ max-height:900px; }
   .amt-cell .conv{ display:block; font-size:11.5px; opacity:.7; }
 
   /* 逐筆列表：唯讀、緊湊的表格式列 */
@@ -176,6 +156,10 @@
     font-size:15px; font-weight:500; color:var(--ink);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
+  .trow-time{
+    font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft);
+    margin-left:6px; font-weight:400;
+  }
   .trow-sub{
     font-size:12.5px; color:var(--ink-soft); margin-top:1px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -187,6 +171,15 @@
   .trow-cat{
     font-size:11px; color:var(--ink-soft); margin-top:2px;
   }
+
+  /* 同店家同日期合併群組：頂部彙總列 */
+  .trow-group-head{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 2px; border-bottom:1px dotted #E4E0D0;
+  }
+  /* 合併群組：底下縮排的個別項目列，圖示與行高都略小 */
+  .trow-sub-row{ padding-left:24px; padding-top:6px; padding-bottom:6px; }
+  .trow-avatar-sm{ width:28px; height:28px; font-size:12px; }
 
   /* 點列跳出的編輯視窗 */
   .modal-backdrop{
@@ -302,7 +295,7 @@
   .cal-grid .day.empty{ cursor:default; }
   .cal-grid .day.in-range{ background:var(--stamp-soft); }
   .cal-grid .day.range-start, .cal-grid .day.range-end{
-    background:var(--stamp); color:#fff; border-radius:50%;
+    background:var(--stamp); color:#fff; border-radius:0;
   }
   .range-summary{
     text-align:center; font-family:var(--font-mono); font-size:14px;
@@ -449,6 +442,7 @@ async function loadData(){
       store: r.store || "",
       item: r.item || "",
       note: r.note || "",
+      time: r.time || "",
       amount: Number(r.amount) || 0,
       currency: r.currency || "TWD",
       date: normalizeDate(r.date),
@@ -495,16 +489,21 @@ function resolveColor(v){
   return getComputedStyle(document.documentElement).getPropertyValue(cssVar[1]).trim();
 }
 
-let state = { chartType:"pie", barMode:"category", range:"all", customStart:null, customEnd:null, activeCats:new Set(), chart:null };
+let state = { chartType:"pie", barMode:"category", range:"thisMonth", customStart:null, customEnd:null, activeCats:new Set(), chart:null };
 
 const RANGE_PRESETS = [
   {key:"all", label:"全部"},
   {key:"today", label:"今天"},
   {key:"yesterday", label:"昨天"},
   {key:"dayBeforeYesterday", label:"前天"},
+  {key:"thisWeek", label:"本週"},
+  {key:"lastWeek", label:"上週"},
   {key:"thisMonth", label:"本月"},
   {key:"lastMonth", label:"上月"},
-  {key:"thisYear", label:"本年"}
+  {key:"firstHalfYear", label:"上半年"},
+  {key:"secondHalfYear", label:"下半年"},
+  {key:"thisYear", label:"本年"},
+  {key:"lastYear", label:"去年"}
 ];
 
 function rangeButtonLabel(){
@@ -519,6 +518,14 @@ function rangeButtonLabel(){
 
 function sameDay(a, b){
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+function startOfWeek(d){
+  // 週一為一週的開始
+  const day = d.getDay(); // 0=週日 ... 6=週六
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
+  return monday;
 }
 
 function inRange(dateStr){
@@ -538,7 +545,25 @@ function inRange(dateStr){
     const dby = new Date(now); dby.setDate(dby.getDate()-2);
     return sameDay(d, dby);
   }
+  if(state.range === "thisWeek"){
+    const start = startOfWeek(now);
+    const end = new Date(start); end.setDate(start.getDate()+6);
+    return d >= start && d <= end;
+  }
+  if(state.range === "lastWeek"){
+    const thisStart = startOfWeek(now);
+    const start = new Date(thisStart); start.setDate(thisStart.getDate()-7);
+    const end = new Date(start); end.setDate(start.getDate()+6);
+    return d >= start && d <= end;
+  }
+  if(state.range === "firstHalfYear"){
+    return d.getFullYear() === now.getFullYear() && d.getMonth() <= 5;
+  }
+  if(state.range === "secondHalfYear"){
+    return d.getFullYear() === now.getFullYear() && d.getMonth() >= 6;
+  }
   if(state.range === "thisYear") return d.getFullYear() === now.getFullYear();
+  if(state.range === "lastYear") return d.getFullYear() === now.getFullYear() - 1;
   const sameMonth = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
   if(state.range === "thisMonth") return sameMonth;
   if(state.range === "lastMonth"){
@@ -568,7 +593,7 @@ function fmtOriginal(amount, currency){
   const symbol = CURRENCY_SYMBOLS[currency] || (currency + " ");
   const main = symbol + amount.toLocaleString();
   if(currency && currency !== "TWD" && RATES[currency]){
-    return `${main}<span class="conv"> (TWD ${Math.round(toTWD(amount, currency)).toLocaleString()})</span>`;
+    return `${main}<span class="conv"> (NT$${Math.round(toTWD(amount, currency)).toLocaleString()})</span>`;
   }
   return main;
 }
@@ -603,9 +628,18 @@ function groupByDate(rows){
   };
 }
 
+// 點圖表的分類區塊（圓餅圖扇形／長條圖依分類的長條），效果等同點分類篩選晶片
+function toggleCategoryFilter(cat){
+  if(state.activeCats.has(cat)) state.activeCats.delete(cat);
+  else state.activeCats.add(cat);
+  renderAll();
+}
+
 function renderChart(rows, grouped){
   const ctx = document.getElementById("mainChart").getContext("2d");
   if(state.chart) state.chart.destroy();
+
+  document.getElementById("chartWrap").classList.toggle("pie-mode", state.chartType === "pie");
 
   const monoFont = "ui-monospace, Menlo, Consolas, monospace";
   const bodyFont = getComputedStyle(document.body).fontFamily;
@@ -619,7 +653,7 @@ function renderChart(rows, grouped){
       type:"pie",
       data:{ labels, datasets:[{ data: totals, backgroundColor: colors, borderColor:"#EDEAE0", borderWidth:2 }] },
       options:{
-        onClick:(evt, els)=>{ if(!els.length) return; toggleOpen(labels[els[0].index]); },
+        onClick:(evt, els)=>{ if(!els.length) return; toggleCategoryFilter(labels[els[0].index]); },
         plugins:{ legend:{ display:true, labels:{ font:{family:bodyFont}, boxWidth:12 } } },
         animation:{ duration:250 }
       }
@@ -650,7 +684,7 @@ function renderChart(rows, grouped){
       type:"bar",
       data:{ labels, datasets:[{ data: totals, backgroundColor: colors, borderRadius:2, maxBarThickness:34 }] },
       options:{
-        onClick:(evt, els)=>{ if(!els.length) return; toggleOpen(labels[els[0].index]); },
+        onClick:(evt, els)=>{ if(!els.length) return; toggleCategoryFilter(labels[els[0].index]); },
         plugins:{ legend:{ display:false } },
         scales:{
           x:{ ticks:{ font:{family:bodyFont, size:11} }, grid:{ display:false } },
@@ -662,13 +696,6 @@ function renderChart(rows, grouped){
   }
 }
 
-function toggleOpen(cat){
-  const row = document.querySelector(`.cat-row[data-cat="${CSS.escape(cat)}"]`);
-  if(!row) return;
-  const willOpen = !row.classList.contains("open");
-  document.querySelectorAll(".cat-row.open").forEach(r=>r.classList.remove("open"));
-  if(willOpen) row.classList.add("open");
-}
 
 // 儲存單一欄位到 Google 試算表。刻意不設定 Content-Type header，
 // 讓瀏覽器預設用 text/plain 送出，避免觸發 CORS 預檢（preflight）被 Apps Script 擋下。
@@ -691,24 +718,56 @@ async function saveField(rowId, field, value, inputEl){
 }
 
 // 共用的「表格列」產生器：逐筆列表、以及圖表下方各分類的明細，都用這一份
-function buildTrowsHtml(rows){
-  const sorted = [...rows].sort((a,b)=> new Date(b.date) - new Date(a.date));
-  if(sorted.length === 0) return `<div class="rec-date">此篩選條件下沒有資料</div>`;
+// 圖示背景：只有一種分類就是純色；兩種以上等分分色（45度起始，2色時剛好是斜線對半分）
+function comboAvatarStyle(colors){
+  if(colors.length <= 1) return `background:${colors[0] || "#999"}`;
+  const n = colors.length;
+  const stops = colors.map((c,i)=> `${c} ${Math.round(i*100/n)}% ${Math.round((i+1)*100/n)}%`).join(", ");
+  return `background:conic-gradient(from 45deg, ${stops})`;
+}
 
-  let html = "";
-  let lastDate = null;
-  sorted.forEach(r=>{
-    if(r.date !== lastDate){
-      lastDate = r.date;
-      html += `<div class="rec-date">${r.date}</div>`;
-    }
+function buildSingleTrow(r){
+  const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
+  const subLine = [r.item, r.note].filter(Boolean).join("・");
+  return `
+    <div class="trow" data-rowid="${r.rowId}">
+      <div class="trow-avatar" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
+      <div class="trow-main">
+        <div class="trow-title">${r.store || "未知商家"}${r.time ? `<span class="trow-time">${r.time}</span>` : ""}</div>
+        <div class="trow-sub">${subLine}</div>
+      </div>
+      <div class="trow-right">
+        <div class="trow-amt">${fmtOriginal(r.amount, r.currency)}</div>
+        <div class="trow-cat">${r.category}${r.subcategory ? "・" + r.subcategory : ""}</div>
+      </div>
+    </div>`;
+}
+
+// 同店家、同日期、同時間，2筆以上才合併顯示：頂部彙總列 + 底下縮排的個別項目
+function buildMergedGroup(store, time, items){
+  const distinctCats = [...new Set(items.map(it => it.category))];
+  const colors = distinctCats.map(c => resolveColor(CAT_COLORS[c] || "#999"));
+  const total = items.reduce((s, it) => s + toTWD(it.amount, it.currency), 0);
+
+  let html = `
+    <div class="trow-group-head">
+      <div class="trow-avatar" style="${comboAvatarStyle(colors)}"></div>
+      <div class="trow-main">
+        <div class="trow-title">${store || "未知商家"}${time ? `<span class="trow-time">${time}</span>` : ""}</div>
+      </div>
+      <div class="trow-right">
+        <div class="trow-amt">${fmt(total)}</div>
+        <div class="trow-cat">${distinctCats.join("・")}</div>
+      </div>
+    </div>`;
+
+  items.forEach(r=>{
     const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
     const subLine = [r.item, r.note].filter(Boolean).join("・");
     html += `
-      <div class="trow" data-rowid="${r.rowId}">
-        <div class="trow-avatar" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
+      <div class="trow trow-sub-row" data-rowid="${r.rowId}">
+        <div class="trow-avatar trow-avatar-sm" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
         <div class="trow-main">
-          <div class="trow-title">${r.store || "未知商家"}</div>
           <div class="trow-sub">${subLine}</div>
         </div>
         <div class="trow-right">
@@ -716,6 +775,32 @@ function buildTrowsHtml(rows){
           <div class="trow-cat">${r.category}${r.subcategory ? "・" + r.subcategory : ""}</div>
         </div>
       </div>`;
+  });
+  return html;
+}
+
+function buildTrowsHtml(rows){
+  const sorted = [...rows].sort((a,b)=> new Date(b.date) - new Date(a.date));
+  if(sorted.length === 0) return `<div class="rec-date">此篩選條件下沒有資料</div>`;
+
+  // 先依日期分組，同一天內再依「商家+時間」分組（時間也要相同才會合併，保留原本相對順序）
+  const byDate = [];
+  sorted.forEach(r=>{
+    let dGroup = byDate.find(g => g.date === r.date);
+    if(!dGroup){ dGroup = { date: r.date, groups: [] }; byDate.push(dGroup); }
+    let sGroup = dGroup.groups.find(s => s.store === r.store && s.time === (r.time || ""));
+    if(!sGroup){ sGroup = { store: r.store, time: r.time || "", items: [] }; dGroup.groups.push(sGroup); }
+    sGroup.items.push(r);
+  });
+
+  let html = "";
+  byDate.forEach(dGroup=>{
+    html += `<div class="rec-date">${dGroup.date}</div>`;
+    dGroup.groups.forEach(sGroup=>{
+      html += sGroup.items.length === 1
+        ? buildSingleTrow(sGroup.items[0])
+        : buildMergedGroup(sGroup.store, sGroup.time, sGroup.items);
+    });
   });
   return html;
 }
@@ -740,9 +825,15 @@ function todayStr(){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 
+function nowTimeStr(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function openAddModal(){
   openEditModal({
-    rowId: null, store:"", date: todayStr(), item:"",
+    rowId: null, store:"", date: todayStr(), time: nowTimeStr(), item:"",
     amount:0, currency:"TWD", category:"", subcategory:"", note:""
   });
 }
@@ -759,6 +850,7 @@ function openEditModal(r){
   body.innerHTML = `
     <div class="field"><label>商家</label><input type="text" data-field="store" value="${r.store||""}"></div>
     <div class="field"><label>日期</label><input type="date" data-field="date" value="${r.date||""}"></div>
+    <div class="field"><label>時間</label><input type="time" data-field="time" value="${r.time||""}"></div>
     <div class="field full"><label>品項</label><input type="text" data-field="item" value="${r.item||""}"></div>
     <div class="field"><label>金額</label><input type="number" data-field="amount" value="${r.amount}"></div>
     <div class="field"><label>幣別</label><select data-field="currency">${curOptions}</select></div>
@@ -883,36 +975,6 @@ document.getElementById("editBackdrop").addEventListener("click", e=>{
   if(e.target.id === "editBackdrop") closeEditModal();
 });
 
-function renderList(grouped, grandTotal){
-  const wrap = document.getElementById("categoryList");
-  wrap.innerHTML = "";
-  const sorted = Object.entries(grouped).sort((a,b)=>b[1].total - a[1].total);
-
-  sorted.forEach(([cat, data])=>{
-    const pct = grandTotal ? Math.round(data.total / grandTotal * 100) : 0;
-    const row = document.createElement("div");
-    row.className = "cat-row";
-    row.dataset.cat = cat;
-
-    row.innerHTML = `
-      <div class="cat-head" onclick="toggleOpen('${cat.replace(/'/g,"\\'")}')">
-        <div class="name-wrap">
-          <span class="caret">▸</span>
-          <span class="dot" style="background:${resolveColor(CAT_COLORS[cat]||'#999')}"></span>
-          <span class="name">${cat}</span>
-          <span class="sub">${data.items.length}筆</span>
-        </div>
-        <div class="right">
-          <span class="pct">${pct}%</span>
-          <span class="amt">${fmt(data.total)}</span>
-        </div>
-      </div>
-      <div class="items">${buildTrowsHtml(data.items)}</div>
-    `;
-    wrap.appendChild(row);
-  });
-}
-
 function renderAll(){
   renderChips();
   const rows = getFiltered();
@@ -932,7 +994,7 @@ function renderAll(){
     renderListView(rows);
   } else {
     renderChart(rows, grouped);
-    renderList(grouped, grandTotal);
+    document.getElementById("categoryList").innerHTML = buildTrowsHtml(rows);
   }
 }
 
