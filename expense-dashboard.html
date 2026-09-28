@@ -286,6 +286,39 @@
     padding:6px 11px; cursor:pointer; line-height:1;
   }
 
+  .select-btn{
+    background:var(--paper-dark); border:none;
+    font-family:var(--font-sans); font-size:14px; color:var(--ink-soft);
+    padding:6px 13px; cursor:pointer;
+  }
+  .select-btn.active{ background:var(--ink); color:var(--paper); }
+
+  /* 批次選取用的核取方塊，只有選取模式開啟時才會渲染出來 */
+  .trow-check{
+    flex:0 0 auto; margin-right:2px; align-self:center;
+    width:18px; height:18px; accent-color:var(--stamp); cursor:pointer;
+  }
+  .trow.selected{ background:var(--stamp-soft); }
+
+  /* 批次操作底部浮動列 */
+  .bulk-bar{
+    position:fixed; left:12px; right:12px; bottom:16px; margin:0 auto;
+    max-width:440px; z-index:55;
+    background:var(--ink); color:var(--paper);
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; box-shadow:0 10px 28px rgba(0,0,0,.35);
+  }
+  .bulk-count{ font-size:13.5px; flex:1; }
+  .bulk-edit-btn, .bulk-delete-btn{
+    border:none; font-family:var(--font-sans); font-size:13.5px;
+    padding:8px 12px; cursor:pointer; font-weight:600;
+  }
+  .bulk-edit-btn{ background:var(--paper); color:var(--ink); }
+  .bulk-delete-btn{ background:var(--stamp); color:var(--paper); }
+  .bulk-edit-btn:disabled, .bulk-delete-btn:disabled{ opacity:.45; cursor:default; }
+
+  .edit-modal-body label input[type="checkbox"]{ margin-right:4px; vertical-align:middle; accent-color:var(--stamp); }
+
   /* 日期範圍選擇視窗 */
   .range-modal-body{ padding:14px 16px 18px; }
   .range-presets{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
@@ -347,6 +380,9 @@
       <button class="sort-btn" id="sortBtn" title="切換日期新舊排序">日期↓</button>
       <button class="range-btn" id="rangeBtn">全部</button>
     </div>
+    <div class="row">
+      <button class="select-btn" id="selectBtn">選取</button>
+    </div>
     <div class="row" id="barModeRow" style="display:none;">
       <div class="seg" id="barModeSeg">
         <button data-mode="category" class="active">依分類</button>
@@ -365,6 +401,12 @@
   <div class="list" id="categoryList"></div>
 
   <div class="list-view" id="listView" style="display:none;"></div>
+
+  <div class="bulk-bar" id="bulkBar" style="display:none;">
+    <span class="bulk-count" id="bulkCount">已選取 0 筆</span>
+    <button class="bulk-edit-btn" id="bulkEditBtn">批次編輯</button>
+    <button class="bulk-delete-btn" id="bulkDeleteBtn">刪除</button>
+  </div>
 
   <div class="modal-backdrop" id="editBackdrop" style="display:none;">
     <div class="edit-modal">
@@ -504,7 +546,7 @@ function resolveColor(v){
   return getComputedStyle(document.documentElement).getPropertyValue(cssVar[1]).trim();
 }
 
-let state = { chartType:"pie", barMode:"category", range:"thisMonth", customStart:null, customEnd:null, activeCats:new Set(), chart:null, dateSortAsc:false };
+let state = { chartType:"pie", barMode:"category", range:"thisMonth", customStart:null, customEnd:null, activeCats:new Set(), chart:null, dateSortAsc:false, selectMode:false, selectedIds:new Set() };
 
 const RANGE_PRESETS = [
   {key:"all", label:"全部"},
@@ -745,8 +787,10 @@ function comboAvatarStyle(colors){
 function buildSingleTrow(r){
   const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
   const subLine = [r.item, r.note].filter(Boolean).join("・");
+  const checked = state.selectedIds.has(r.rowId);
   return `
-    <div class="trow" data-rowid="${r.rowId}">
+    <div class="trow${checked ? " selected" : ""}" data-rowid="${r.rowId}">
+      ${state.selectMode ? `<input type="checkbox" class="trow-check" ${checked ? "checked" : ""}>` : ""}
       <div class="trow-avatar" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
       <div class="trow-main">
         <div class="trow-title">${r.store || "未知商家"}${r.time ? `<span class="trow-time">${r.time}</span>` : ""}</div>
@@ -780,8 +824,10 @@ function buildMergedGroup(store, time, items){
   items.forEach(r=>{
     const catColor = resolveColor(CAT_COLORS[r.category] || "#999");
     const subLine = [r.item, r.note].filter(Boolean).join("・");
+    const checked = state.selectedIds.has(r.rowId);
     html += `
-      <div class="trow trow-sub-row" data-rowid="${r.rowId}">
+      <div class="trow trow-sub-row${checked ? " selected" : ""}" data-rowid="${r.rowId}">
+        ${state.selectMode ? `<input type="checkbox" class="trow-check" ${checked ? "checked" : ""}>` : ""}
         <div class="trow-avatar trow-avatar-sm" style="background:${catColor}">${(r.category||"?").charAt(0)}</div>
         <div class="trow-main">
           <div class="trow-sub">${subLine}</div>
@@ -830,9 +876,157 @@ document.querySelector(".receipt").addEventListener("click", e=>{
   const row = e.target.closest(".trow");
   if(!row) return;
   const rowId = Number(row.dataset.rowid);
+  if(state.selectMode){
+    toggleRowSelection(rowId, row);
+    return;
+  }
   const rec = ALL_DATA.find(x => x.rowId === rowId);
   if(rec) openEditModal(rec);
 });
+
+function toggleRowSelection(rowId, rowEl){
+  if(state.selectedIds.has(rowId)) state.selectedIds.delete(rowId);
+  else state.selectedIds.add(rowId);
+  if(rowEl){
+    rowEl.classList.toggle("selected", state.selectedIds.has(rowId));
+    const cb = rowEl.querySelector(".trow-check");
+    if(cb) cb.checked = state.selectedIds.has(rowId);
+  }
+  updateBulkBar();
+}
+
+function updateBulkBar(){
+  const n = state.selectedIds.size;
+  document.getElementById("bulkBar").style.display = state.selectMode ? "flex" : "none";
+  document.getElementById("bulkCount").textContent = `已選取 ${n} 筆`;
+  document.getElementById("bulkEditBtn").disabled = n === 0;
+  document.getElementById("bulkDeleteBtn").disabled = n === 0;
+}
+
+document.getElementById("selectBtn").addEventListener("click", ()=>{
+  state.selectMode = !state.selectMode;
+  document.getElementById("selectBtn").classList.toggle("active", state.selectMode);
+  if(!state.selectMode) state.selectedIds.clear();
+  updateBulkBar();
+  renderAll();
+});
+
+document.getElementById("bulkDeleteBtn").addEventListener("click", async ()=>{
+  const ids = [...state.selectedIds];
+  if(ids.length === 0) return;
+  if(!confirm(`確定要刪除選取的 ${ids.length} 筆記錄嗎？此動作無法復原。`)) return;
+
+  const btn = document.getElementById("bulkDeleteBtn");
+  btn.disabled = true;
+  btn.textContent = "刪除中…";
+
+  // 由大到小刪，避免刪除造成後面列的 rowId 位移互相影響
+  const sortedIds = ids.sort((a,b)=> b - a);
+  try{
+    for(const rowId of sortedIds){
+      await fetch(SHEET_API_URL, { method:"POST", body: JSON.stringify({ action:"delete", rowId }) });
+    }
+  }catch(err){
+    console.error("批次刪除失敗：", err);
+    alert("刪除過程中發生錯誤，部分記錄可能未刪除，請重新整理確認");
+  }
+  state.selectedIds.clear();
+  state.selectMode = false;
+  document.getElementById("selectBtn").classList.remove("active");
+  btn.disabled = false;
+  btn.textContent = "刪除";
+  updateBulkBar();
+  await loadData();
+});
+
+document.getElementById("bulkEditBtn").addEventListener("click", openBulkEditModal);
+
+function openBulkEditModal(){
+  document.getElementById("editModalTitle").textContent = `批次編輯（已選取 ${state.selectedIds.size} 筆）`;
+  const body = document.getElementById("editModalBody");
+  const curOptions = CURRENCY_LIST.map(c=>`<option value="${c}">${c}</option>`).join("");
+
+  body.innerHTML = `
+    <div class="field full"><label><input type="checkbox" data-bulk-toggle="store"> 商家</label><input type="text" data-bulk-field="store" disabled></div>
+    <div class="field"><label><input type="checkbox" data-bulk-toggle="date"> 日期</label><input type="date" data-bulk-field="date" disabled></div>
+    <div class="field"><label><input type="checkbox" data-bulk-toggle="time"> 時間</label><input type="time" data-bulk-field="time" disabled></div>
+    <div class="field full"><label><input type="checkbox" data-bulk-toggle="item"> 品項</label><input type="text" data-bulk-field="item" disabled></div>
+    <div class="field"><label><input type="checkbox" data-bulk-toggle="amount"> 金額</label><input type="number" data-bulk-field="amount" disabled></div>
+    <div class="field"><label><input type="checkbox" data-bulk-toggle="currency"> 幣別</label><select data-bulk-field="currency" disabled>${curOptions}</select></div>
+    <div class="field combo-wrap">
+      <label><input type="checkbox" data-bulk-toggle="category"> 分類</label>
+      <input type="text" data-bulk-field="category" disabled autocomplete="off">
+      <div class="combo-list hidden" data-combo="bulk-category"></div>
+    </div>
+    <div class="field combo-wrap">
+      <label><input type="checkbox" data-bulk-toggle="subcategory"> 子分類</label>
+      <input type="text" data-bulk-field="subcategory" disabled autocomplete="off">
+      <div class="combo-list hidden" data-combo="bulk-subcategory"></div>
+    </div>
+    <div class="field full"><label><input type="checkbox" data-bulk-toggle="note"> 備註</label><textarea data-bulk-field="note" disabled></textarea></div>
+    <div class="modal-status" id="modalStatus"></div>
+    <button class="modal-save-btn" id="bulkApplyBtn">套用到 ${state.selectedIds.size} 筆</button>
+  `;
+
+  // 勾選核取方塊才會啟用對應欄位，未勾選的欄位不會被批次覆蓋
+  body.querySelectorAll("[data-bulk-toggle]").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const field = body.querySelector(`[data-bulk-field="${cb.dataset.bulkToggle}"]`);
+      field.disabled = !cb.checked;
+      if(cb.checked) field.focus();
+    });
+  });
+
+  const categoryInput = body.querySelector('[data-bulk-field="category"]');
+  const categoryList = body.querySelector('[data-combo="bulk-category"]');
+  const subcategoryInput = body.querySelector('[data-bulk-field="subcategory"]');
+  const subcategoryList = body.querySelector('[data-combo="bulk-subcategory"]');
+  setupCombo(categoryInput, categoryList, () => CATEGORY_LIST);
+  setupCombo(subcategoryInput, subcategoryList, () => CATEGORY_MAP[categoryInput.value] || []);
+
+  document.getElementById("bulkApplyBtn").addEventListener("click", applyBulkEdit);
+  document.getElementById("editBackdrop").style.display = "flex";
+}
+
+async function applyBulkEdit(){
+  const body = document.getElementById("editModalBody");
+  const btn = document.getElementById("bulkApplyBtn");
+  const status = document.getElementById("modalStatus");
+
+  const changes = {};
+  body.querySelectorAll("[data-bulk-toggle]:checked").forEach(cb=>{
+    const field = cb.dataset.bulkToggle;
+    const el = body.querySelector(`[data-bulk-field="${field}"]`);
+    changes[field] = field === "amount" ? (Number(el.value) || 0) : el.value;
+  });
+
+  if(Object.keys(changes).length === 0){
+    status.textContent = "請至少勾選一個要套用的欄位";
+    return;
+  }
+
+  const ids = [...state.selectedIds];
+  btn.disabled = true;
+  status.textContent = "";
+
+  try{
+    for(let i=0; i<ids.length; i++){
+      btn.textContent = `套用中… (${i+1}/${ids.length})`;
+      await fetch(SHEET_API_URL, { method:"POST", body: JSON.stringify({ action:"update", rowId: ids[i], ...changes }) });
+    }
+    closeEditModal();
+    state.selectedIds.clear();
+    state.selectMode = false;
+    document.getElementById("selectBtn").classList.remove("active");
+    updateBulkBar();
+    await loadData();
+  }catch(err){
+    console.error("批次編輯失敗：", err);
+    status.textContent = "套用失敗，請檢查網路後再試一次";
+    btn.disabled = false;
+    btn.textContent = `套用到 ${ids.length} 筆`;
+  }
+}
 
 function renderListView(rows){
   document.getElementById("listView").innerHTML = buildTrowsHtml(rows);
