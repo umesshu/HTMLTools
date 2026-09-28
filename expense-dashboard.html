@@ -796,9 +796,10 @@ function buildMergedGroup(store, time, items){
 }
 
 function buildTrowsHtml(rows){
+  const dt = r => new Date(`${r.date}T${r.time || "00:00"}`);
   const sorted = [...rows].sort((a,b)=> state.dateSortAsc
-    ? new Date(a.date) - new Date(b.date)
-    : new Date(b.date) - new Date(a.date));
+    ? dt(a) - dt(b)
+    : dt(b) - dt(a));
   if(sorted.length === 0) return `<div class="rec-date">此篩選條件下沒有資料</div>`;
 
   // 先依日期分組，同一天內再依「商家+時間」分組（時間也要相同才會合併，保留原本相對順序）
