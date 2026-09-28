@@ -287,11 +287,12 @@
   }
 
   .select-btn{
-    background:var(--paper-dark); border:none;
-    font-family:var(--font-sans); font-size:14px; color:var(--ink-soft);
-    padding:6px 13px; cursor:pointer;
+    width:100%; margin-bottom:14px;
+    background:transparent; border:1px dashed var(--paper-line);
+    color:var(--ink-soft); font-family:var(--font-sans); font-size:13.5px;
+    padding:11px; cursor:pointer;
   }
-  .select-btn.active{ background:var(--ink); color:var(--paper); }
+  .select-btn.active{ background:var(--ink); border-color:var(--ink); color:var(--paper); }
 
   /* 批次選取用的核取方塊，只有選取模式開啟時才會渲染出來 */
   .trow-check{
@@ -380,9 +381,6 @@
       <button class="sort-btn" id="sortBtn" title="切換日期新舊排序">日期↓</button>
       <button class="range-btn" id="rangeBtn">全部</button>
     </div>
-    <div class="row">
-      <button class="select-btn" id="selectBtn">選取</button>
-    </div>
     <div class="row" id="barModeRow" style="display:none;">
       <div class="seg" id="barModeSeg">
         <button data-mode="category" class="active">依分類</button>
@@ -393,6 +391,8 @@
   </div>
 
   <button class="add-record-btn" id="addRecordBtn" style="display:none;">＋ 手動新增一筆</button>
+
+  <button class="select-btn" id="selectBtn">選取</button>
 
   <div class="chart-wrap" id="chartWrap">
     <canvas id="mainChart" height="240"></canvas>
