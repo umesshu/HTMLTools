@@ -264,12 +264,26 @@
   }
   .modal-delete-btn:disabled{ opacity:.5; }
 
+  .modal-copy-btn{
+    grid-column:1 / -1; margin-top:2px;
+    background:transparent; border:1px solid var(--ink-soft);
+    color:var(--ink-soft); padding:9px; font-size:12.5px; font-weight:500;
+    letter-spacing:.03em; cursor:pointer;
+  }
+  .modal-copy-btn:disabled{ opacity:.5; }
+
   /* 時間範圍按鈕（跟三個檢視模式同一列，推到最右邊自然產生間距） */
   .range-btn{
     margin-left:auto;
     background:var(--paper-dark); border:none;
     font-family:var(--font-sans); font-size:15px; color:var(--ink);
     padding:6px 13px; cursor:pointer;
+  }
+
+  .sort-btn{
+    background:var(--paper-dark); border:none;
+    font-family:var(--font-sans); font-size:15px; color:var(--ink);
+    padding:6px 11px; cursor:pointer; line-height:1;
   }
 
   /* 日期範圍選擇視窗 */
@@ -330,6 +344,7 @@
         <button data-type="bar">長條圖</button>
         <button data-type="list">逐筆列表</button>
       </div>
+      <button class="sort-btn" id="sortBtn" title="切換日期新舊排序">日期↓</button>
       <button class="range-btn" id="rangeBtn">全部</button>
     </div>
     <div class="row" id="barModeRow" style="display:none;">
@@ -489,7 +504,7 @@ function resolveColor(v){
   return getComputedStyle(document.documentElement).getPropertyValue(cssVar[1]).trim();
 }
 
-let state = { chartType:"pie", barMode:"category", range:"thisMonth", customStart:null, customEnd:null, activeCats:new Set(), chart:null };
+let state = { chartType:"pie", barMode:"category", range:"thisMonth", customStart:null, customEnd:null, activeCats:new Set(), chart:null, dateSortAsc:false };
 
 const RANGE_PRESETS = [
   {key:"all", label:"全部"},
@@ -621,7 +636,8 @@ function renderChips(){
 function groupByDate(rows){
   const map = {};
   rows.forEach(r=>{ map[r.date] = (map[r.date] || 0) + toTWD(r.amount, r.currency); });
-  const dateKeys = Object.keys(map).sort(); // 依日期由舊到新
+  const dateKeys = Object.keys(map).sort(); // 一律由舊到新排列
+  if(!state.dateSortAsc) dateKeys.reverse(); // 依目前排序設定決定顯示順序
   return {
     labels: dateKeys.map(d => d.slice(5).replace('-', '/')),
     totals: dateKeys.map(d => map[d])
@@ -780,7 +796,9 @@ function buildMergedGroup(store, time, items){
 }
 
 function buildTrowsHtml(rows){
-  const sorted = [...rows].sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const sorted = [...rows].sort((a,b)=> state.dateSortAsc
+    ? new Date(a.date) - new Date(b.date)
+    : new Date(b.date) - new Date(a.date));
   if(sorted.length === 0) return `<div class="rec-date">此篩選條件下沒有資料</div>`;
 
   // 先依日期分組，同一天內再依「商家+時間」分組（時間也要相同才會合併，保留原本相對順序）
@@ -867,6 +885,7 @@ function openEditModal(r){
     <div class="field full"><label>備註</label><textarea data-field="note">${r.note||""}</textarea></div>
     <div class="modal-status" id="modalStatus"></div>
     <button class="modal-save-btn" id="modalSaveBtn">${isNew ? "新增這筆" : "確認修改"}</button>
+    ${isNew ? "" : `<button class="modal-copy-btn" id="modalCopyBtn">複製這筆記錄</button>`}
     ${isNew ? "" : `<button class="modal-delete-btn" id="modalDeleteBtn">刪除這筆記錄</button>`}
   `;
 
@@ -881,6 +900,9 @@ function openEditModal(r){
   document.getElementById("modalSaveBtn").addEventListener("click", ()=> saveAllFields(r, isNew));
   if(!isNew){
     document.getElementById("modalDeleteBtn").addEventListener("click", ()=> deleteRecord(r));
+    document.getElementById("modalCopyBtn").addEventListener("click", ()=>{
+      openEditModal({ ...r, rowId: null });
+    });
   }
 
   document.getElementById("editBackdrop").style.display = "flex";
@@ -997,6 +1019,12 @@ function renderAll(){
     document.getElementById("categoryList").innerHTML = buildTrowsHtml(rows);
   }
 }
+
+document.getElementById("sortBtn").addEventListener("click", ()=>{
+  state.dateSortAsc = !state.dateSortAsc;
+  document.getElementById("sortBtn").textContent = state.dateSortAsc ? "日期↑" : "日期↓";
+  renderAll();
+});
 
 document.getElementById("chartTypeSeg").addEventListener("click", e=>{
   const btn = e.target.closest("button");
